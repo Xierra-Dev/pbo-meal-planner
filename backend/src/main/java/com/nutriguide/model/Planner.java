@@ -1,0 +1,29 @@
+package com.nutriguide.model;
+
+import jakarta.persistence.*;
+import lombok.Data;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+@Data
+@Entity
+@Table(name = "planner")
+public class Planner {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+    
+    @ManyToOne
+    @JoinColumn(name = "recipe_id", nullable = false)
+    private Recipe recipe;
+    
+    @Column(name = "planned_date", nullable = false)
+    private LocalDate plannedDate;
+    
+    @Column(name = "created_at")
+    private LocalDateTime createdAt = LocalDateTime.now();
+}
