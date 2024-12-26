@@ -26,25 +26,78 @@ public class PlannerService {
     @Autowired
     private RecipeRepository recipeRepository;
 
+    @Autowired
+    private SavedRecipeService savedRecipeService;
+
     public PlannerDto addToPlan(Long userId, Long recipeId, LocalDate plannedDate) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        Recipe recipe = recipeRepository.findById(recipeId)
-                .orElseThrow(() -> new RuntimeException("Recipe not found"));
-
-        Planner planner = new Planner();
-        planner.setUser(user);
-        planner.setRecipe(recipe);
-        planner.setPlannedDate(plannedDate);
-
-        return convertToDto(plannerRepository.save(planner));
+        try {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+    
+            // Create or get recipe in database
+            Recipe recipe = recipeRepository.findByExternalId(recipeId.toString())
+                    .orElseGet(() -> {
+                        Recipe newRecipe = new Recipe();
+                        newRecipe.setExternalId(recipeId.toString());
+                        newRecipe.setTitle("Recipe " + recipeId);
+                        newRecipe.setCategory("Uncategorized");
+                        return recipeRepository.save(newRecipe);
+                    });
+    
+            // Check for existing plan
+            if (plannerRepository.existsByUserIdAndRecipeIdAndPlannedDate(userId, recipe.getId(), plannedDate)) {
+                throw new RuntimeException("Recipe already planned for this date");
+            }
+    
+            Planner planner = new Planner();
+            planner.setUser(user);
+            planner.setRecipe(recipe);
+            planner.setPlannedDate(plannedDate);
+    
+            PlannerDto result = convertToDto(plannerRepository.save(planner));
+            System.out.println("Successfully added to plan: " + result);
+            return result;
+        } catch (Exception e) {
+            System.out.println("Error in addToPlan: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to add recipe to plan: " + e.getMessage());
+        }
     }
 
     public List<PlannerDto> getUserPlan(Long userId, LocalDate startDate, LocalDate endDate) {
-        return plannerRepository.findByUserIdAndPlannedDateBetween(userId, startDate, endDate)
-                .stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+        try {
+            List<Planner> planners = plannerRepository.findByUserIdAndPlannedDateBetween(userId, startDate, endDate);
+            
+            // Add debug logging
+            System.out.println("Found " + planners.size() + " planned items");
+            
+            return planners.stream()
+                    .map(planner -> {
+                        PlannerDto dto = new PlannerDto();
+                        dto.setId(planner.getId());
+                        dto.setUserId(planner.getUser().getId());
+                        dto.setRecipeId(Long.parseLong(planner.getRecipe().getExternalId()));
+                        dto.setPlannedDate(planner.getPlannedDate());
+                        
+                        RecipeDto recipeDto = new RecipeDto();
+                        Recipe recipe = planner.getRecipe();
+                        recipeDto.setId(recipe.getExternalId());
+                        recipeDto.setTitle(recipe.getTitle());
+                        recipeDto.setDescription(recipe.getDescription());
+                        recipeDto.setThumbnailUrl(recipe.getThumbnailUrl());
+                        recipeDto.setArea(recipe.getArea());
+                        recipeDto.setCategory(recipe.getCategory());
+                        recipeDto.setInstructions(recipe.getInstructions());
+                        
+                        dto.setRecipe(recipeDto);
+                        return dto;
+                    })
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            System.out.println("Error getting user plan: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to get user plan: " + e.getMessage());
+        }
     }
 
     public void removePlannerItem(Long plannerId, Long userId) {
@@ -62,14 +115,18 @@ public class PlannerService {
         PlannerDto dto = new PlannerDto();
         dto.setId(planner.getId());
         dto.setUserId(planner.getUser().getId());
-        dto.setRecipeId(planner.getRecipe().getId());
+        dto.setRecipeId(Long.parseLong(planner.getRecipe().getExternalId()));
         dto.setPlannedDate(planner.getPlannedDate());
         
         RecipeDto recipeDto = new RecipeDto();
-        recipeDto.setId(planner.getRecipe().getId().toString());
-        recipeDto.setTitle(planner.getRecipe().getTitle());
-        recipeDto.setCategory(planner.getRecipe().getCategory());
-        recipeDto.setThumbnailUrl(planner.getRecipe().getThumbnailUrl());
+        Recipe recipe = planner.getRecipe();
+        recipeDto.setId(recipe.getExternalId());
+        recipeDto.setTitle(recipe.getTitle());
+        recipeDto.setDescription(recipe.getDescription());
+        recipeDto.setThumbnailUrl(recipe.getThumbnailUrl());
+        recipeDto.setArea(recipe.getArea());
+        recipeDto.setCategory(recipe.getCategory());
+        recipeDto.setInstructions(recipe.getInstructions());
         
         dto.setRecipe(recipeDto);
         return dto;

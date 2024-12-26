@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../../core/models/recipe.dart';
+import '../../core/services/planner_service.dart';
 
 class RecipeDetailsDialog extends StatelessWidget {
   final Recipe recipe;
@@ -12,6 +15,58 @@ class RecipeDetailsDialog extends StatelessWidget {
     this.isSaved = false,
     this.onSaveRecipe,
   });
+
+  Future<void> _showDatePicker(BuildContext context) async {
+    try {
+      final selectedDate = await showDatePicker(
+        context: context,
+        initialDate: DateTime.now(),
+        firstDate: DateTime.now(),
+        lastDate: DateTime.now().add(const Duration(days: 365)),
+      );
+
+      if (selectedDate != null && context.mounted) {
+        // Tampilkan loading indicator
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+
+        // Add to plan menggunakan provider
+        final plannerService = context.read<PlannerService>();
+        await plannerService.addToPlan(recipe.id, selectedDate);
+        
+        if (context.mounted) {
+          // Tutup loading indicator
+          Navigator.of(context).pop();
+          
+          // Tampilkan snackbar sukses
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Recipe planned for ${DateFormat('EEEE, MMMM d').format(selectedDate)}'
+              ),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.of(context).pop(); // Tutup loading jika ada
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to plan recipe: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,81 +95,54 @@ class RecipeDetailsDialog extends StatelessWidget {
                 Positioned(
                   top: 8,
                   right: 8,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
+                  child: IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.of(context).pop(),
                   ),
                 ),
               ],
             ),
 
-            // Title Section (Fixed)
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    recipe.title,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(Icons.restaurant, size: 20, color: Colors.grey[600]),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${recipe.ingredients.length} ingredients',
-                        style: TextStyle(color: Colors.grey[600]),
-                      ),
-                      const SizedBox(width: 16),
-                      Icon(Icons.timer, size: 20, color: Colors.grey[600]),
-                      const SizedBox(width: 8),
-                      Text(
-                        '30 min',
-                        style: TextStyle(color: Colors.grey[600]),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            // Scrollable Content
+            // Content
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Ingredients',
-                      style: Theme.of(context).textTheme.titleLarge,
+                      recipe.title,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
+                
+                    // Ingredients
+                    const Text(
+                      'Ingredients',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                     ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: recipe.ingredients.length,
                       itemBuilder: (context, index) {
                         return Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(vertical: 4),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('• '),
+                              const Text('• ', style: TextStyle(fontSize: 16)),
                               Expanded(
                                 child: Text(
                                   recipe.ingredients[index],
-                                  style: const TextStyle(height: 1.5),
+                                  style: const TextStyle(fontSize: 16),
                                 ),
                               ),
                             ],
@@ -122,7 +150,9 @@ class RecipeDetailsDialog extends StatelessWidget {
                         );
                       },
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
+
+                    // Instructions
                     Text(
                       'Instructions',
                       style: Theme.of(context).textTheme.titleLarge,
@@ -137,26 +167,42 @@ class RecipeDetailsDialog extends StatelessWidget {
               ),
             ),
 
-            // Bottom Buttons
-            Container(
+            // Action Buttons
+            Padding(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
-              ),
               child: Row(
                 children: [
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () {
+                      onPressed: () async {
                         if (onSaveRecipe != null) {
-                          onSaveRecipe!(recipe, !isSaved);
+                          try {
+                            await onSaveRecipe!(recipe, !isSaved);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    isSaved 
+                                      ? 'Recipe removed from saved' 
+                                      : 'Recipe saved successfully'
+                                  ),
+                                  backgroundColor: isSaved ? Colors.red : Colors.green,
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Failed to ${isSaved ? 'unsave' : 'save'} recipe'
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
                         }
                       },
                       icon: Icon(
@@ -174,9 +220,7 @@ class RecipeDetailsDialog extends StatelessWidget {
                   const SizedBox(width: 16),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () {
-                        // TODO: Implement plan recipe functionality
-                      },
+                      onPressed: () => _showDatePicker(context),
                       icon: const Icon(Icons.calendar_today),
                       label: const Text('Plan Recipe'),
                       style: OutlinedButton.styleFrom(

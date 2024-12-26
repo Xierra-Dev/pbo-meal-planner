@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/services/saved_recipe_service.dart';
 import 'auth/login_screen.dart';
 import 'home_screen.dart';
 
@@ -12,36 +13,94 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  bool _isInitializing = true;
+  String? _error;
+
   @override
   void initState() {
     super.initState();
-    _checkAuth();
+    _initializeApp();
   }
 
-  Future<void> _checkAuth() async {
-    await Future.delayed(const Duration(seconds: 2)); // Splash delay
-    if (!mounted) return;
+  Future<void> _initializeApp() async {
+    try {
+      setState(() {
+        _isInitializing = true;
+        _error = null;
+      });
 
-    final isLoggedIn = await context.read<AuthService>().isLoggedIn();
-    if (!mounted) return;
+      // Tunggu minimal 2 detik untuk splash screen
+      await Future.delayed(const Duration(seconds: 2));
+      if (!mounted) return;
 
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => isLoggedIn ? const HomeScreen() : const LoginScreen(),
-      ),
-    );
+      final authService = context.read<AuthService>();
+      
+      // Initialize auth first
+      await authService.initializeAuth();
+      final isLoggedIn = await authService.isLoggedIn();
+      print('Auth check - isLoggedIn: $isLoggedIn');
+
+      if (!mounted) return;
+
+      if (isLoggedIn) {
+        final userId = await authService.getCurrentUserId();
+        print('Current userId: $userId');
+      }
+
+      // Navigate to appropriate screen
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => isLoggedIn ? const HomeScreen() : const LoginScreen(),
+        ),
+      );
+    } catch (e) {
+      print('Error initializing app: $e');
+      if (!mounted) return;
+      
+      setState(() {
+        _isInitializing = false;
+        _error = e.toString();
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            FlutterLogo(size: 100),
-            SizedBox(height: 16),
-            CircularProgressIndicator(),
+            Image.asset(
+              'assets/images/logo.png',
+              width: 150,
+              height: 150,
+              errorBuilder: (context, error, stackTrace) {
+                return const Icon(
+                  Icons.restaurant,
+                  size: 150,
+                  color: Colors.green,
+                );
+              },
+            ),
+            const SizedBox(height: 20),
+            if (_isInitializing) 
+              const CircularProgressIndicator()
+            else if (_error != null)
+              Column(
+                children: [
+                  Text(
+                    'Error: $_error',
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _initializeApp,
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
           ],
         ),
       ),

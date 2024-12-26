@@ -1,26 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/services/auth_service.dart';
-import 'core/services/recipe_service.dart';
 import 'core/services/saved_recipe_service.dart';
 import 'core/services/planner_service.dart';
+import 'core/services/recipe_service.dart';
 import 'presentation/pages/splash_screen.dart';
-import 'package:flutter/services.dart';
+import 'core/services/api_service.dart';
 
 void main() {
-  WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
-  
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthService()),
-        ChangeNotifierProvider(create: (_) => RecipeService()),
-        ChangeNotifierProvider(create: (_) => SavedRecipeService()),
-        ChangeNotifierProvider(create: (_) => PlannerService()),
+        Provider<ApiService>(
+          create: (_) => ApiService(),
+        ),
+        ChangeNotifierProvider<AuthService>(
+          create: (_) => AuthService(),
+        ),
+        Provider<RecipeService>(
+          create: (_) => RecipeService(),
+        ),
+        ChangeNotifierProvider<SavedRecipeService>(
+          create: (context) => SavedRecipeService(
+            context.read<AuthService>(),
+          ),
+        ),
+        ChangeNotifierProvider<PlannerService>(
+          create: (context) => PlannerService(
+            context.read<ApiService>(),
+            context.read<AuthService>(),
+          ),
+        ),
       ],
       child: const MyApp(),
     ),
@@ -33,28 +43,36 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'NutriGuide',
+      title: 'Nutriguide',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blue,
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+        scaffoldBackgroundColor: Colors.grey[100],
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.white,
-          elevation: 0,
-          iconTheme: IconThemeData(color: Colors.black),
-          titleTextStyle: TextStyle(
-            color: Colors.black,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+          foregroundColor: Colors.black,
+          elevation: 1,
+        ),
+        cardTheme: CardTheme(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
-        scaffoldBackgroundColor: Colors.white,
-        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-          selectedItemColor: Colors.green,
-          unselectedItemColor: Colors.grey,
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
         ),
       ),
       home: const SplashScreen(),

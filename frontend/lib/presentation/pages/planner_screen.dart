@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../../core/models/planner.dart';
 import '../../core/services/planner_service.dart';
 import '../widgets/loading_indicator.dart';
@@ -13,7 +14,7 @@ class PlannerScreen extends StatefulWidget {
 }
 
 class _PlannerScreenState extends State<PlannerScreen> {
-  final PlannerService _plannerService = PlannerService();
+  late final PlannerService _plannerService;
   Map<DateTime, List<Planner>> _plannedMeals = {};
   DateTime _selectedDate = DateTime.now();
   bool _isLoading = true;
@@ -22,6 +23,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
   @override
   void initState() {
     super.initState();
+    _plannerService = Provider.of<PlannerService>(context, listen: false);
     _loadPlannedMeals();
   }
 
@@ -34,7 +36,12 @@ class _PlannerScreenState extends State<PlannerScreen> {
     try {
       final startDate = _selectedDate.subtract(const Duration(days: 7));
       final endDate = _selectedDate.add(const Duration(days: 7));
+      
+      print('Loading meals from $startDate to $endDate');
+      
       final plannedMeals = await _plannerService.getPlannedMeals(startDate, endDate);
+      
+      print('Loaded ${plannedMeals.length} meals');
       
       final groupedMeals = <DateTime, List<Planner>>{};
       for (var meal in plannedMeals) {
@@ -51,6 +58,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
         _isLoading = false;
       });
     } catch (e) {
+      print('Error loading meals: $e');
       setState(() {
         _error = 'Failed to load planned meals: $e';
         _isLoading = false;
@@ -61,70 +69,121 @@ class _PlannerScreenState extends State<PlannerScreen> {
   Future<void> _removePlannedMeal(Planner planner) async {
     try {
       await _plannerService.removeFromPlan(planner.id);
-      _loadPlannedMeals();
+      _loadPlannedMeals(); // Refresh after removing
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to remove planned meal')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to remove planned meal: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const LoadingIndicator(message: 'Loading meal plan...');
-    }
+    return Consumer<PlannerService>(
+      builder: (context, plannerService, child) {
+        if (_isLoading) {
+          return const LoadingIndicator(message: 'Loading meal plan...');
+        }
 
-    if (_error != null) {
-      return ErrorView(
-        message: _error!,
-        onRetry: _loadPlannedMeals,
-      );
-    }
+        if (_error != null) {
+          return ErrorView(
+            message: _error!,
+            onRetry: _loadPlannedMeals,
+          );
+        }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Meal Planner'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.calendar_today),
-            onPressed: () async {
-              final date = await showDatePicker(
-                context: context,
-                initialDate: _selectedDate,
-                firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                lastDate: DateTime.now().add(const Duration(days: 365)),
-              );
-              if (date != null) {
-                setState(() => _selectedDate = date);
-                _loadPlannedMeals();
-              }
-            },
+        return Scaffold(
+          appBar: AppBar(
+            title: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: Row(
+                  children: [
+                    const Text('Meal Planner'),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.calendar_today),
+                      onPressed: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate: _selectedDate,
+                          firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                        );
+                        if (date != null) {
+                          setState(() => _selectedDate = date);
+                          _loadPlannedMeals();
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            centerTitle: false,
+            toolbarHeight: 60,
           ),
-        ],
-      ),
-      body: ListView.builder(
-        itemCount: 15, // Show 15 days
-        itemBuilder: (context, index) {
-          final date = _selectedDate.add(Duration(days: index - 7));
-          final meals = _plannedMeals[date] ?? [];
-          return _buildDayCard(date, meals);
-        },
-      ),
+          body: RefreshIndicator(
+            onRefresh: _loadPlannedMeals,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: 15, // Show 15 days
+                  itemBuilder: (context, index) {
+                    final date = _selectedDate.add(Duration(days: index - 7));
+                    final meals = _plannedMeals[date] ?? [];
+                    return _buildDayCard(date, meals);
+                  },
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
   Widget _buildDayCard(DateTime date, List<Planner> meals) {
+    final isToday = date.year == DateTime.now().year &&
+        date.month == DateTime.now().month &&
+        date.day == DateTime.now().day;
+
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      color: isToday ? Colors.blue.shade50 : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Text(
-              DateFormat('EEEE, MMMM d').format(date),
-              style: Theme.of(context).textTheme.titleLarge,
+            child: Row(
+              children: [
+                Text(
+                  DateFormat('EEEE, MMMM d').format(date),
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                if (isToday) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.blue,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'Today',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
           if (meals.isEmpty)
@@ -137,17 +196,20 @@ class _PlannerScreenState extends State<PlannerScreen> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: meals.length,
-              itemBuilder: (context, index) => ListTile(
-                leading: CircleAvatar(
-                  backgroundImage: NetworkImage(meals[index].recipe.thumbnailUrl),
-                ),
-                title: Text(meals[index].recipe.title),
-                subtitle: Text(meals[index].recipe.category),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete),
-                  onPressed: () => _removePlannedMeal(meals[index]),
-                ),
-              ),
+              itemBuilder: (context, index) {
+                final meal = meals[index];
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundImage: NetworkImage(meal.recipe.thumbnailUrl),
+                  ),
+                  title: Text(meal.recipe.title),
+                  subtitle: Text(meal.recipe.category ?? 'No category'),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete),
+                    onPressed: () => _removePlannedMeal(meal),
+                  ),
+                );
+              },
             ),
         ],
       ),

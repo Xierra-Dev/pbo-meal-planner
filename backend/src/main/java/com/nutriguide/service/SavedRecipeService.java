@@ -1,7 +1,6 @@
 package com.nutriguide.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.nutriguide.dto.RecipeDto;
 import com.nutriguide.model.Recipe;
 import com.nutriguide.model.SavedRecipe;
@@ -30,11 +29,18 @@ public class SavedRecipeService {
     @Autowired
     private RecipeRepository recipeRepository;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Autowired
+    private ObjectMapper objectMapper;
 
     public List<RecipeDto> getSavedRecipes(Long userId) {
         try {
             System.out.println("Getting saved recipes for user: " + userId);
+            
+            // Validasi user exists
+            if (!userRepository.existsById(userId)) {
+                throw new RuntimeException("User not found with id: " + userId);
+            }
+
             List<SavedRecipe> savedRecipes = savedRecipeRepository.findByUserIdWithRecipe(userId);
             return savedRecipes.stream()
                     .map(savedRecipe -> convertToDto(savedRecipe.getRecipe()))
@@ -49,46 +55,52 @@ public class SavedRecipeService {
     public RecipeDto saveRecipe(Long userId, String recipeId, RecipeDto recipeDto) {
         try {
             System.out.println("Saving recipe: " + recipeId + " for user: " + userId);
-            System.out.println("Recipe data: " + recipeDto);
-
+            
+            // Validasi user exists
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+
+            // Cek apakah resep sudah disimpan
+            if (savedRecipeRepository.existsByUserIdAndRecipe_ExternalId(userId, recipeId)) {
+                throw new RuntimeException("Recipe already saved by this user");
+            }
 
             Recipe recipe = recipeRepository.findByExternalId(recipeId)
                     .orElseGet(() -> {
                         Recipe newRecipe = new Recipe();
-                        newRecipe.setExternalId(recipeId);
-                        newRecipe.setTitle(recipeDto.getTitle());
-                        newRecipe.setDescription(recipeDto.getDescription());
-                        newRecipe.setThumbnailUrl(recipeDto.getThumbnailUrl());
-                        newRecipe.setArea(recipeDto.getArea());
-                        newRecipe.setCategory(recipeDto.getCategory());
-                        newRecipe.setInstructions(recipeDto.getInstructions());
-                        
                         try {
-                            newRecipe.setIngredients(objectMapper.writeValueAsString(recipeDto.getIngredients()));
-                            newRecipe.setMeasures(objectMapper.writeValueAsString(recipeDto.getMeasures()));
+                            newRecipe.setExternalId(recipeId);
+                            newRecipe.setTitle(recipeDto.getTitle());
+                            newRecipe.setDescription(recipeDto.getDescription());
+                            newRecipe.setThumbnailUrl(recipeDto.getThumbnailUrl());
+                            newRecipe.setArea(recipeDto.getArea());
+                            newRecipe.setCategory(recipeDto.getCategory());
+                            newRecipe.setInstructions(recipeDto.getInstructions());
+                            
+                            String ingredientsJson = objectMapper.writeValueAsString(
+                                recipeDto.getIngredients() != null ? recipeDto.getIngredients() : new ArrayList<>()
+                            );
+                            String measuresJson = objectMapper.writeValueAsString(
+                                recipeDto.getMeasures() != null ? recipeDto.getMeasures() : new ArrayList<>()
+                            );
+                            
+                            newRecipe.setIngredients(ingredientsJson);
+                            newRecipe.setMeasures(measuresJson);
+                            
+                            return recipeRepository.save(newRecipe);
                         } catch (Exception e) {
-                            newRecipe.setIngredients("[]");
-                            newRecipe.setMeasures("[]");
+                            throw new RuntimeException("Failed to create recipe: " + e.getMessage());
                         }
-                        
-                        return recipeRepository.save(newRecipe);
                     });
 
-            if (!savedRecipeRepository.existsByUserIdAndRecipe_Id(userId, recipe.getId())) {
-                SavedRecipe savedRecipe = new SavedRecipe();
-                savedRecipe.setUser(user);
-                savedRecipe.setRecipe(recipe);
-                savedRecipeRepository.save(savedRecipe);
-                System.out.println("Recipe saved successfully");
-            } else {
-                System.out.println("Recipe already saved for this user");
-            }
+            SavedRecipe savedRecipe = new SavedRecipe();
+            savedRecipe.setUser(user);
+            savedRecipe.setRecipe(recipe);
+            savedRecipeRepository.save(savedRecipe);
 
             return convertToDto(recipe);
         } catch (Exception e) {
-            System.out.println("Save recipe error: " + e.getMessage());
+            System.out.println("Error saving recipe: " + e.getMessage());
             e.printStackTrace();
             throw new RuntimeException("Failed to save recipe: " + e.getMessage());
         }
@@ -97,37 +109,46 @@ public class SavedRecipeService {
     public void unsaveRecipe(Long userId, String recipeId) {
         try {
             System.out.println("Unsaving recipe: " + recipeId + " for user: " + userId);
-            Recipe recipe = recipeRepository.findByExternalId(recipeId)
-                    .orElseThrow(() -> new RuntimeException("Recipe not found with id: " + recipeId));
+            
+            // Validasi user exists
+            if (!userRepository.existsById(userId)) {
+                throw new RuntimeException("User not found with id: " + userId);
+            }
 
-            savedRecipeRepository.deleteByUserIdAndRecipe_Id(userId, recipe.getId());
-            System.out.println("Recipe unsaved successfully");
+            // Validasi recipe exists
+            if (!savedRecipeRepository.existsByUserIdAndRecipe_ExternalId(userId, recipeId)) {
+                throw new RuntimeException("Recipe not found or not saved by this user");
+            }
+
+            savedRecipeRepository.deleteByUserIdAndRecipe_ExternalId(userId, recipeId);
         } catch (Exception e) {
-            System.out.println("Unsave recipe error: " + e.getMessage());
+            System.out.println("Error unsaving recipe: " + e.getMessage());
             e.printStackTrace();
             throw new RuntimeException("Failed to unsave recipe: " + e.getMessage());
         }
     }
 
     private RecipeDto convertToDto(Recipe recipe) {
-        RecipeDto dto = new RecipeDto();
-        dto.setId(recipe.getExternalId());
-        dto.setExternalId(recipe.getExternalId());
-        dto.setTitle(recipe.getTitle());
-        dto.setDescription(recipe.getDescription());
-        dto.setThumbnailUrl(recipe.getThumbnailUrl());
-        dto.setArea(recipe.getArea());
-        dto.setCategory(recipe.getCategory());
-        dto.setInstructions(recipe.getInstructions());
-        
         try {
-            dto.setIngredients(objectMapper.readValue(recipe.getIngredients(), new TypeReference<List<String>>(){}));
-            dto.setMeasures(objectMapper.readValue(recipe.getMeasures(), new TypeReference<List<String>>(){}));
+            RecipeDto dto = new RecipeDto();
+            dto.setId(recipe.getExternalId());
+            dto.setTitle(recipe.getTitle());
+            dto.setDescription(recipe.getDescription());
+            dto.setThumbnailUrl(recipe.getThumbnailUrl());
+            dto.setArea(recipe.getArea());
+            dto.setCategory(recipe.getCategory());
+            dto.setInstructions(recipe.getInstructions());
+            
+            if (recipe.getIngredients() != null) {
+                dto.setIngredients(objectMapper.readValue(recipe.getIngredients(), List.class));
+            }
+            if (recipe.getMeasures() != null) {
+                dto.setMeasures(objectMapper.readValue(recipe.getMeasures(), List.class));
+            }
+            
+            return dto;
         } catch (Exception e) {
-            dto.setIngredients(new ArrayList<>());
-            dto.setMeasures(new ArrayList<>());
+            throw new RuntimeException("Error converting recipe to DTO: " + e.getMessage());
         }
-        
-        return dto;
     }
 }

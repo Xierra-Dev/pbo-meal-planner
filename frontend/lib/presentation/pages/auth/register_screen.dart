@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/services/auth_service.dart';
+import '../../../../../../core/services/auth_service.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -11,7 +11,7 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -28,16 +28,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     try {
       await _authService.register(
-        _nameController.text.trim(),
+        _usernameController.text.trim(),
         _emailController.text.trim(),
         _passwordController.text,
       );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Registration successful! Please login.'),
-          ),
+          const SnackBar(content: Text('Registration successful! Please login.')),
         );
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -50,15 +48,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
+    _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -80,17 +76,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Name Field
+                // Username Field
                 TextFormField(
-                  controller: _nameController,
+                  controller: _usernameController,
                   decoration: const InputDecoration(
-                    labelText: 'Full Name',
-                    prefixIcon: Icon(Icons.person),
+                    labelText: 'Username',
+                    prefixIcon: Icon(Icons.person_outline),
                     border: OutlineInputBorder(),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter your name';
+                      return 'Please enter a username';
                     }
                     return null;
                   },
@@ -128,9 +124,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility
-                            : Icons.visibility_off,
+                        _obscurePassword ? Icons.visibility : Icons.visibility_off,
                       ),
                       onPressed: () {
                         setState(() {

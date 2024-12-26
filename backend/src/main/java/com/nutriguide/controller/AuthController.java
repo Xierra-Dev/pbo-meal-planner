@@ -1,17 +1,13 @@
 package com.nutriguide.controller;
 
-import com.nutriguide.model.User;
-import com.nutriguide.service.UserService;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 import com.nutriguide.dto.ApiResponse;
 import com.nutriguide.dto.LoginRequest;
 import com.nutriguide.dto.RegisterRequest;
+import com.nutriguide.service.AuthService;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -19,67 +15,76 @@ import com.nutriguide.dto.RegisterRequest;
 public class AuthController {
 
     @Autowired
-    private UserService userService;
+    private AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
         try {
-            // Check if username already exists
-            if (userService.existsByUsername(request.getUsername())) {
-                return ResponseEntity.badRequest()
-                    .body(new ApiResponse(false, "Username is already taken"));
-            }
-
-            // Check if email already exists
-            if (userService.existsByEmail(request.getEmail())) {
-                return ResponseEntity.badRequest()
-                    .body(new ApiResponse(false, "Email is already registered"));
-            }
-
-            User user = new User();
-            user.setUsername(request.getUsername());
-            user.setEmail(request.getEmail());
-            user.setPassword(request.getPassword());
+            System.out.println("Register request received: " + request);
             
-            User savedUser = userService.save(user);
-            return ResponseEntity.ok(new ApiResponse(true, "User registered successfully", savedUser));
+            // Validasi input
+            if (request.getUsername() == null || request.getUsername().trim().isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body(new ApiResponse(false, "Username is required"));
+            }
+            
+            if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body(new ApiResponse(false, "Email is required"));
+            }
+            
+            if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body(new ApiResponse(false, "Password is required"));
+            }
+
+            return authService.register(request);
         } catch (Exception e) {
+            System.out.println("Registration error: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.badRequest()
-                .body(new ApiResponse(false, "Registration failed: " + e.getMessage()));
+                .body(new ApiResponse(false, e.getMessage()));
         }
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
         try {
-            User user = userService.findByUsername(request.getUsername());
-            if (user != null && user.getPassword().equals(request.getPassword())) {
-                // Create simple response with token
-                Map<String, Object> response = new HashMap<String, Object>();
-                response.put("success", true);
-                response.put("message", "Login successful");
-                response.put("token", "user_" + user.getId()); // Simple token
-                response.put("user", user);
-                
-                return ResponseEntity.ok(response);
-            }
-            return ResponseEntity.badRequest()
-                .body(new ApiResponse(false, "Invalid username or password"));
+            System.out.println("Login request received for email: " + request.getEmail());
+            return authService.login(request);
         } catch (Exception e) {
+            System.out.println("Login error: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.badRequest()
-                .body(new ApiResponse(false, "Login failed: " + e.getMessage()));
+                .body(new ApiResponse(false, e.getMessage()));
+        }
+    }
+
+    @GetMapping("/check-email")
+    public ResponseEntity<?> checkEmailAvailability(@RequestParam String email) {
+        try {
+            System.out.println("Checking email availability: " + email);
+            boolean isAvailable = authService.isEmailAvailable(email);
+            return ResponseEntity.ok(new ApiResponse(true, isAvailable ? "Email is available" : "Email is taken"));
+        } catch (Exception e) {
+            System.out.println("Email check error: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest()
+                .body(new ApiResponse(false, e.getMessage()));
         }
     }
 
     @GetMapping("/check-username")
-    public ResponseEntity<?> checkUsername(@RequestParam String username) {
-        boolean exists = userService.existsByUsername(username);
-        return ResponseEntity.ok(new ApiResponse(true, exists ? "Username taken" : "Username available", exists));
-    }
-
-    @GetMapping("/check-email")
-    public ResponseEntity<?> checkEmail(@RequestParam String email) {
-        boolean exists = userService.existsByEmail(email);
-        return ResponseEntity.ok(new ApiResponse(true, exists ? "Email taken" : "Email available", exists));
+    public ResponseEntity<?> checkUsernameAvailability(@RequestParam String username) {
+        try {
+            System.out.println("Checking username availability: " + username);
+            boolean isAvailable = authService.isUsernameAvailable(username);
+            return ResponseEntity.ok(new ApiResponse(true, isAvailable ? "Username is available" : "Username is taken"));
+        } catch (Exception e) {
+            System.out.println("Username check error: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest()
+                .body(new ApiResponse(false, e.getMessage()));
+        }
     }
 }

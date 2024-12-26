@@ -36,7 +36,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   Future<void> _loadRecipes() async {
     setState(() => _isLoading = true);
     try {
-      final recipes = await _recipeService.getRandomRecipes(20);
+      final recipes = await _recipeService.getRandomRecipes(10);
       setState(() {
         _recipes = recipes;
         _isLoading = false;
@@ -136,7 +136,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                   padding: const EdgeInsets.all(16),
                                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                                     crossAxisCount: 2,
-                                    childAspectRatio: 1.15,
+                                    childAspectRatio: 1,
                                     crossAxisSpacing: 16,
                                     mainAxisSpacing: 16,
                                   ),
@@ -144,7 +144,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                   itemBuilder: (context, index) {
                                     return RecipeCard(
                                       recipe: _recipes[index],
-                                      showSaveButton: true,
                                       titleFontSize: 16,
                                       isSaved: context.watch<SavedRecipeService>().isRecipeSaved(_recipes[index].id),
                                       onSaveRecipe: (recipe, isSaved) async {
@@ -152,13 +151,36 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                         try {
                                           if (isSaved) {
                                             await savedRecipeService.saveRecipe(recipe);
+                                            if (mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text('Recipe saved successfully'),
+                                                  backgroundColor: Colors.green,
+                                                  duration: Duration(seconds: 2),
+                                                ),
+                                              );
+                                            }
                                           } else {
                                             await savedRecipeService.unsaveRecipe(recipe.id);
+                                            if (mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text('Recipe removed from saved'),
+                                                  backgroundColor: Colors.red,
+                                                  duration: Duration(seconds: 2),
+                                                ),
+                                              );
+                                            }
                                           }
                                         } catch (e) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text('Failed to ${isSaved ? 'save' : 'unsave'} recipe')),
-                                          );
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text('Failed to ${isSaved ? 'save' : 'unsave'} recipe'),
+                                                backgroundColor: Colors.red,
+                                              ),
+                                            );
+                                          }
                                         }
                                       },
                                     );

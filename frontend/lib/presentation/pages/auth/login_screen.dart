@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/services/auth_service.dart';
+import '../../../../../../core/services/auth_service.dart';
 import 'package:nutriguide/presentation/pages/home_screen.dart';
 import 'register_screen.dart';
 

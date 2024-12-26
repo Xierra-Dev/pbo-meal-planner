@@ -148,7 +148,7 @@ class _HomeContentState extends State<HomeContent> {
                   context,
                   title: 'Recommended',
                   onSeeAll: () {
-                    final recipes = context.read<RecipeService>().getRecommendedRecipes(30);
+                    final recipes = context.read<RecipeService>().getRecommendedRecipes(6);
                     showDialog(
                       context: context,
                       builder: (context) => FutureBuilder<List<Recipe>>(
@@ -174,7 +174,7 @@ class _HomeContentState extends State<HomeContent> {
                       Consumer<RecipeService>(
                         builder: (context, recipeService, child) {
                           return FutureBuilder<List<Recipe>>(
-                            future: recipeService.getRecommendedRecipes(15),
+                            future: recipeService.getRecommendedRecipes(7),
                             builder: (context, snapshot) {
                               if (snapshot.connectionState == ConnectionState.waiting) {
                                 return const Center(child: CircularProgressIndicator());
@@ -199,13 +199,36 @@ class _HomeContentState extends State<HomeContent> {
                                       try {
                                         if (isSaved) {
                                           await savedRecipeService.saveRecipe(recipe);
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Text('Recipe saved successfully'),
+                                                backgroundColor: Colors.green,
+                                                duration: Duration(seconds: 2),
+                                              ),
+                                            );
+                                          }
                                         } else {
                                           await savedRecipeService.unsaveRecipe(recipe.id);
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Text('Recipe removed from saved'),
+                                                backgroundColor: Colors.red,
+                                                duration: Duration(seconds: 2),
+                                              ),
+                                            );
+                                          }
                                         }
                                       } catch (e) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('Failed to ${isSaved ? 'save' : 'unsave'} recipe')),
-                                        );
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('Failed to ${isSaved ? 'save' : 'unsave'} recipe'),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                        }
                                       }
                                     },
                                   );
@@ -256,7 +279,7 @@ class _HomeContentState extends State<HomeContent> {
                   context,
                   title: 'Popular',
                   onSeeAll: () {
-                    final recipes = context.read<RecipeService>().getPopularRecipes(30);
+                    final recipes = context.read<RecipeService>().getPopularRecipes(6);
                     showDialog(
                       context: context,
                       builder: (context) => FutureBuilder<List<Recipe>>(
@@ -282,7 +305,7 @@ class _HomeContentState extends State<HomeContent> {
                       Consumer<RecipeService>(
                         builder: (context, recipeService, child) {
                           return FutureBuilder<List<Recipe>>(
-                            future: recipeService.getPopularRecipes(15),
+                            future: recipeService.getPopularRecipes(7),
                             builder: (context, snapshot) {
                               if (snapshot.connectionState == ConnectionState.waiting) {
                                 return const Center(child: CircularProgressIndicator());
@@ -307,13 +330,36 @@ class _HomeContentState extends State<HomeContent> {
                                       try {
                                         if (isSaved) {
                                           await savedRecipeService.saveRecipe(recipe);
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Text('Recipe saved successfully'),
+                                                backgroundColor: Colors.green,
+                                                duration: Duration(seconds: 2),
+                                              ),
+                                            );
+                                          }
                                         } else {
                                           await savedRecipeService.unsaveRecipe(recipe.id);
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Text('Recipe removed from saved'),
+                                                backgroundColor: Colors.red,
+                                                duration: Duration(seconds: 2),
+                                              ),
+                                            );
+                                          }
                                         }
                                       } catch (e) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('Failed to ${isSaved ? 'save' : 'unsave'} recipe')),
-                                        );
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('Failed to ${isSaved ? 'save' : 'unsave'} recipe'),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                        }
                                       }
                                     },
                                   );
@@ -371,7 +417,7 @@ class _HomeContentState extends State<HomeContent> {
                 Consumer<RecipeService>(
                   builder: (context, recipeService, child) {
                     return FutureBuilder<List<Recipe>>(
-                      future: recipeService.getRandomRecipes(20),
+                      future: recipeService.getRandomRecipes(2),
                       builder: (context, snapshot) {
                         if (snapshot.connectionState == ConnectionState.waiting) {
                           return const Center(child: CircularProgressIndicator());
@@ -400,13 +446,36 @@ class _HomeContentState extends State<HomeContent> {
                                 try {
                                   if (isSaved) {
                                     await savedRecipeService.saveRecipe(recipe);
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Recipe saved successfully'),
+                                          backgroundColor: Colors.green,
+                                          duration: Duration(seconds: 2),
+                                        ),
+                                      );
+                                    }
                                   } else {
                                     await savedRecipeService.unsaveRecipe(recipe.id);
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Recipe removed from saved'),
+                                          backgroundColor: Colors.red,
+                                          duration: Duration(seconds: 2),
+                                        ),
+                                      );
+                                    }
                                   }
                                 } catch (e) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Failed to ${isSaved ? 'save' : 'unsave'} recipe')),
-                                  );
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Failed to ${isSaved ? 'save' : 'unsave'} recipe'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
                                 }
                               },
                             );
