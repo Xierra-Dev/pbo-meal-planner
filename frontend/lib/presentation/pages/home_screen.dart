@@ -11,6 +11,7 @@ import 'profile_screen.dart';
 import 'auth/login_screen.dart';
 import '../widgets/recipe_card.dart';
 import '../widgets/popup_recipe_grid.dart';
+import '../widgets/recipe_details_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -50,10 +51,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const Spacer(),
-            IconButton(
-              icon: const Icon(Icons.search),
-              onPressed: () {},
-            ),
             PopupMenuButton(
               offset: const Offset(0, 40),
               child: const CircleAvatar(
@@ -212,10 +209,56 @@ class _HomeContentState extends State<HomeContent> {
                                     recipe: recipes[index],
                                     titleFontSize: 16,
                                     isSaved: context.watch<SavedRecipeService>().isRecipeSaved(recipes[index].id),
+                                    onTap: (recipe) {
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) => RecipeDetailsDialog(
+                                          recipe: recipe,
+                                          isSaved: context.read<SavedRecipeService>().isRecipeSaved(recipe.id),
+                                          onSaveRecipe: (recipe, isSaved) async {
+                                            final savedRecipeService = context.read<SavedRecipeService>();
+                                            try {
+                                              if (isSaved) {
+                                                await savedRecipeService.saveRecipe(recipe);
+                                                if (mounted) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    const SnackBar(
+                                                      content: Text('Recipe saved successfully'),
+                                                      backgroundColor: Colors.green,
+                                                      duration: Duration(seconds: 2),
+                                                    ),
+                                                  );
+                                                }
+                                              } else {
+                                                await savedRecipeService.unsaveRecipe(recipe.id);
+                                                if (mounted) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    const SnackBar(
+                                                      content: Text('Recipe removed from saved'),
+                                                      backgroundColor: Colors.red,
+                                                      duration: Duration(seconds: 2),
+                                                    ),
+                                                  );
+                                                }
+                                              }
+                                            } catch (e) {
+                                              if (mounted) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text('Failed to ${isSaved ? 'save' : 'unsave'} recipe'),
+                                                    backgroundColor: Colors.red,
+                                                  ),
+                                                );
+                                              }
+                                            }
+                                          },
+                                        ),
+                                      );
+                                    },
                                     onSaveRecipe: (recipe, isSaved) async {
                                       final savedRecipeService = context.read<SavedRecipeService>();
                                       try {
-                                        if (isSaved) {
+                                        if (!isSaved) {
                                           await savedRecipeService.saveRecipe(recipe);
                                           if (mounted) {
                                             ScaffoldMessenger.of(context).showSnackBar(
@@ -242,7 +285,7 @@ class _HomeContentState extends State<HomeContent> {
                                         if (mounted) {
                                           ScaffoldMessenger.of(context).showSnackBar(
                                             SnackBar(
-                                              content: Text('Failed to ${isSaved ? 'save' : 'unsave'} recipe'),
+                                              content: Text('Failed to ${!isSaved ? 'save' : 'unsave'} recipe'),
                                               backgroundColor: Colors.red,
                                             ),
                                           );
@@ -343,10 +386,58 @@ class _HomeContentState extends State<HomeContent> {
                                     recipe: recipes[index],
                                     titleFontSize: 16,
                                     isSaved: context.watch<SavedRecipeService>().isRecipeSaved(recipes[index].id),
+                                    onTap: (recipe) {
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) => RecipeDetailsDialog(
+                                          recipe: recipe,
+                                          isSaved: context.read<SavedRecipeService>().isRecipeSaved(recipe.id),
+                                          onSaveRecipe: (recipe, isSaved) async {
+                                            // Same save recipe handler as above
+                                            final savedRecipeService = context.read<SavedRecipeService>();
+                                            try {
+                                              if (isSaved) {
+                                                await savedRecipeService.saveRecipe(recipe);
+                                                if (mounted) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    const SnackBar(
+                                                      content: Text('Recipe saved successfully'),
+                                                      backgroundColor: Colors.green,
+                                                      duration: Duration(seconds: 2),
+                                                    ),
+                                                  );
+                                                }
+                                              } else {
+                                                await savedRecipeService.unsaveRecipe(recipe.id);
+                                                if (mounted) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    const SnackBar(
+                                                      content: Text('Recipe removed from saved'),
+                                                      backgroundColor: Colors.red,
+                                                      duration: Duration(seconds: 2),
+                                                    ),
+                                                  );
+                                                }
+                                              }
+                                            } catch (e) {
+                                              if (mounted) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text('Failed to ${isSaved ? 'save' : 'unsave'} recipe'),
+                                                    backgroundColor: Colors.red,
+                                                  ),
+                                                );
+                                              }
+                                            }
+                                          },
+                                        ),
+                                      );
+                                    },
                                     onSaveRecipe: (recipe, isSaved) async {
+                                      // Same save recipe handler as above
                                       final savedRecipeService = context.read<SavedRecipeService>();
                                       try {
-                                        if (isSaved) {
+                                        if (!isSaved) {
                                           await savedRecipeService.saveRecipe(recipe);
                                           if (mounted) {
                                             ScaffoldMessenger.of(context).showSnackBar(
@@ -373,7 +464,7 @@ class _HomeContentState extends State<HomeContent> {
                                         if (mounted) {
                                           ScaffoldMessenger.of(context).showSnackBar(
                                             SnackBar(
-                                              content: Text('Failed to ${isSaved ? 'save' : 'unsave'} recipe'),
+                                              content: Text('Failed to ${!isSaved ? 'save' : 'unsave'} recipe'),
                                               backgroundColor: Colors.red,
                                             ),
                                           );
@@ -459,10 +550,58 @@ class _HomeContentState extends State<HomeContent> {
                               recipe: recipes[index],
                               titleFontSize: 16,
                               isSaved: context.watch<SavedRecipeService>().isRecipeSaved(recipes[index].id),
+                              onTap: (recipe) {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => RecipeDetailsDialog(
+                                    recipe: recipe,
+                                    isSaved: context.read<SavedRecipeService>().isRecipeSaved(recipe.id),
+                                    onSaveRecipe: (recipe, isSaved) async {
+                                      // Same save recipe handler as above
+                                      final savedRecipeService = context.read<SavedRecipeService>();
+                                      try {
+                                        if (isSaved) {
+                                          await savedRecipeService.saveRecipe(recipe);
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Text('Recipe saved successfully'),
+                                                backgroundColor: Colors.green,
+                                                duration: Duration(seconds: 2),
+                                              ),
+                                            );
+                                          }
+                                        } else {
+                                          await savedRecipeService.unsaveRecipe(recipe.id);
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Text('Recipe removed from saved'),
+                                                backgroundColor: Colors.red,
+                                                duration: Duration(seconds: 2),
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      } catch (e) {
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('Failed to ${isSaved ? 'save' : 'unsave'} recipe'),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
+                                  ),
+                                );
+                              },
                               onSaveRecipe: (recipe, isSaved) async {
+                                // Same save recipe handler as above
                                 final savedRecipeService = context.read<SavedRecipeService>();
                                 try {
-                                  if (isSaved) {
+                                  if (!isSaved) {
                                     await savedRecipeService.saveRecipe(recipe);
                                     if (mounted) {
                                       ScaffoldMessenger.of(context).showSnackBar(
@@ -489,7 +628,7 @@ class _HomeContentState extends State<HomeContent> {
                                   if (mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
-                                        content: Text('Failed to ${isSaved ? 'save' : 'unsave'} recipe'),
+                                        content: Text('Failed to ${!isSaved ? 'save' : 'unsave'} recipe'),
                                         backgroundColor: Colors.red,
                                       ),
                                     );

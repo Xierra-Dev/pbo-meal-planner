@@ -26,7 +26,6 @@ class RecipeDetailsDialog extends StatelessWidget {
       );
 
       if (selectedDate != null && context.mounted) {
-        // Tampilkan loading indicator
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -35,15 +34,12 @@ class RecipeDetailsDialog extends StatelessWidget {
           ),
         );
 
-        // Add to plan menggunakan provider
         final plannerService = context.read<PlannerService>();
         await plannerService.addToPlan(recipe.id, selectedDate, recipe);
         
         if (context.mounted) {
-          // Tutup loading indicator
           Navigator.of(context).pop();
           
-          // Tampilkan snackbar sukses
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
@@ -57,7 +53,7 @@ class RecipeDetailsDialog extends StatelessWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        Navigator.of(context).pop(); // Tutup loading jika ada
+        Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to plan recipe: $e'),
@@ -66,6 +62,28 @@ class RecipeDetailsDialog extends StatelessWidget {
         );
       }
     }
+  }
+
+  Color _getHealthScoreColor(double score) {
+    if (score >= 7.5) return Colors.green;
+    if (score >= 5) return Colors.orange;
+    return Colors.red;
+  }
+
+  Widget _buildNutritionItem(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(color: Colors.grey),
+        ),
+        Text(
+          value,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
   }
 
   @override
@@ -118,6 +136,71 @@ class RecipeDetailsDialog extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
+
+                    // Health Score
+                    Text(
+                      'Health Score',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: recipe.healthScore / 10,
+                              backgroundColor: Colors.grey[200],
+                              color: _getHealthScoreColor(recipe.healthScore),
+                              minHeight: 8,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          '${recipe.healthScore.toStringAsFixed(1)} / 10',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Nutrition Information
+                    Text(
+                      'Nutrition Information',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 12),
+                    Card(
+                      elevation: 0,
+                      color: Colors.grey[100],
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            _buildNutritionItem('Calories', '${recipe.nutritionInfo.calories} kcal'),
+                            const Divider(),
+                            _buildNutritionItem('Total Fat', '${recipe.nutritionInfo.totalFat}g'),
+                            const Divider(),
+                            _buildNutritionItem('Saturated Fat', '${recipe.nutritionInfo.saturatedFat}g'),
+                            const Divider(),
+                            _buildNutritionItem('Carbs', '${recipe.nutritionInfo.carbs}g'),
+                            const Divider(),
+                            _buildNutritionItem('Sugars', '${recipe.nutritionInfo.sugars}g'),
+                            const Divider(),
+                            _buildNutritionItem('Protein', '${recipe.nutritionInfo.protein}g'),
+                            const Divider(),
+                            _buildNutritionItem('Sodium', '${recipe.nutritionInfo.sodium}mg'),
+                            const Divider(),
+                            _buildNutritionItem('Fiber', '${recipe.nutritionInfo.fiber}g'),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
                 
                     // Ingredients
                     const Text(
@@ -141,7 +224,7 @@ class RecipeDetailsDialog extends StatelessWidget {
                               const Text('• ', style: TextStyle(fontSize: 16)),
                               Expanded(
                                 child: Text(
-                                  recipe.ingredients[index],
+                                  '${recipe.measures[index]} ${recipe.ingredients[index]}',
                                   style: const TextStyle(fontSize: 16),
                                 ),
                               ),

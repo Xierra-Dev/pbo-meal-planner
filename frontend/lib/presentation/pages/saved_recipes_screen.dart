@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/services/saved_recipe_service.dart';
-import '../../core/services/auth_service.dart';
 import '../../core/models/recipe.dart';
-import '../widgets/recipe_grid_item.dart';
+import '../../core/services/saved_recipe_service.dart';
+import '../widgets/recipe_card.dart';
 import '../widgets/recipe_details_dialog.dart';
 
 class SavedRecipesScreen extends StatefulWidget {
@@ -13,112 +12,44 @@ class SavedRecipesScreen extends StatefulWidget {
   State<SavedRecipesScreen> createState() => _SavedRecipesScreenState();
 }
 
-class _SavedRecipesScreenState extends State<SavedRecipesScreen> with AutomaticKeepAliveClientMixin {
-  Future<List<Recipe>> _savedRecipesFuture = Future.value([]);
-
-  @override
-  bool get wantKeepAlive => true;
+class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
+  late Future<List<Recipe>> _savedRecipesFuture;
 
   @override
   void initState() {
     super.initState();
-    _loadInitialData();
+    _refreshSavedRecipes();
   }
 
-  Future<void> _loadInitialData() async {
-    await Future.delayed(const Duration(milliseconds: 1000));
-    if (!mounted) return;
-    
-    try {
-      final authService = Provider.of<AuthService>(context, listen: false);
-      final isLoggedIn = await authService.isLoggedIn();
-      
-      if (!mounted || !isLoggedIn) return;
-
-      final savedRecipeService = Provider.of<SavedRecipeService>(context, listen: false);
-      await savedRecipeService.resetService();
-      
-      if (!mounted) return;
-
-      setState(() {
-        _savedRecipesFuture = savedRecipeService.getSavedRecipes().then((recipes) {
-          print('Loaded ${recipes.length} saved recipes');
-          return recipes;
-        }).catchError((error) {
-          print('Error loading saved recipes: $error');
-          throw error;
-        });
-      });
-    } catch (e) {
-      print('Error in initial load: $e');
-      if (mounted) {
-        setState(() {
-          _savedRecipesFuture = Future.error(e);
-        });
-      }
-    }
-  }
-
-  Future<void> _refreshSavedRecipes() async {
-    if (!mounted) return;
-    
-    try {
-      final authService = Provider.of<AuthService>(context, listen: false);
-      final isLoggedIn = await authService.isLoggedIn();
-      
-      if (!mounted || !isLoggedIn) return;
-      
-      final savedRecipeService = Provider.of<SavedRecipeService>(context, listen: false);
-      
-      setState(() {
-        _savedRecipesFuture = savedRecipeService.getSavedRecipes().then((recipes) {
-          print('Refreshed ${recipes.length} saved recipes');
-          return recipes;
-        }).catchError((error) {
-          print('Error refreshing saved recipes: $error');
-          throw error;
-        });
-      });
-    } catch (e) {
-      print('Error in refresh: $e');
-      if (mounted) {
-        setState(() {
-          _savedRecipesFuture = Future.error(e);
-        });
-      }
-    }
+  void _refreshSavedRecipes() {
+    final savedRecipeService = context.read<SavedRecipeService>();
+    _savedRecipesFuture = savedRecipeService.getSavedRecipes();
   }
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
-
     return Scaffold(
-      appBar: AppBar(
-        title: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 800),
-            child: Row(
-              children: [
-                const Text('Saved Recipes'),
-              ],
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 800), // Sama dengan konten
+            child: AppBar(
+              title: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24.0), // Sama dengan konten
+                child: Text('Saved Recipes'),
+              ),
+              backgroundColor: Colors.transparent,
+              elevation: 0,
             ),
           ),
         ),
-        centerTitle: false,
-        toolbarHeight: 60,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _refreshSavedRecipes,
-          ),
-        ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _refreshSavedRecipes,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 800),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
             child: FutureBuilder<List<Recipe>>(
               future: _savedRecipesFuture,
               builder: (context, snapshot) {
@@ -131,11 +62,21 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> with AutomaticK
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text('Error: ${snapshot.error}'),
+                        const Icon(
+                          Icons.error_outline,
+                          color: Colors.red,
+                          size: 60,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Error loading saved recipes\n${snapshot.error}',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.red),
+                        ),
                         const SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: _refreshSavedRecipes,
-                          child: const Text('Retry'),
+                          child: const Text('Try Again'),
                         ),
                       ],
                     ),
@@ -145,15 +86,29 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> with AutomaticK
                 final recipes = snapshot.data ?? [];
 
                 if (recipes.isEmpty) {
-                  return RefreshIndicator(
-                    onRefresh: _refreshSavedRecipes,
-                    child: ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      children: const [
-                        Center(
-                          child: Padding(
-                            padding: EdgeInsets.only(top: 100),
-                            child: Text('No saved recipes yet'),
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.bookmark_border,
+                          size: 60,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No saved recipes yet',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Your saved recipes will appear here',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[400],
                           ),
                         ),
                       ],
@@ -161,167 +116,124 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> with AutomaticK
                   );
                 }
 
-                return Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: GridView.builder(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 1.4,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                    ),
-                    itemCount: recipes.length,
-                    itemBuilder: (context, index) {
-                      return GestureDetector(
-                        onTap: () {
+                return GridView.builder(
+                  padding: const EdgeInsets.all(16),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3, // Increased for wider screens
+                    childAspectRatio: 0.75,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                  ),
+                  itemCount: recipes.length,
+                  itemBuilder: (context, index) {
+                    final recipe = recipes[index];
+                    return RecipeCard(
+                      recipe: recipe,
+                      isSaved: true,
+                      onTap: (recipe) {
+                        showDialog(
+                          context: context,
+                          builder: (context) => RecipeDetailsDialog(
+                            recipe: recipe,
+                            isSaved: true,
+                            onSaveRecipe: (recipe, isSaved) async {
+                              try {
+                                final savedRecipeService = context.read<SavedRecipeService>();
+                                await savedRecipeService.unsaveRecipe(recipe.id);
+                                if (mounted) {
+                                  Navigator.of(context).pop();
+                                  _refreshSavedRecipes();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Recipe removed from saved'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Failed to remove recipe: $e'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                          ),
+                        );
+                      },
+                      onSaveRecipe: (recipe, isSaved) async {
+                        try {
+                          final savedRecipeService = context.read<SavedRecipeService>();
+                          
+                          // Show loading indicator
                           showDialog(
                             context: context,
-                            builder: (context) => RecipeDetailsDialog(
-                              recipe: recipes[index],
-                              isSaved: true,
-                              onSaveRecipe: (recipe, isSaved) async {
-                                Navigator.of(context).pop(); // Tutup dialog
-                                if (!mounted) return;
-                                
-                                try {
-                                  final savedRecipeService = Provider.of<SavedRecipeService>(
-                                    context, 
-                                    listen: false
-                                  );
-                                  
-                                  // Tampilkan loading indicator
-                                  showDialog(
-                                    context: context,
-                                    barrierDismissible: false,
-                                    builder: (context) => const Center(
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  );
-                                  
-                                  // Unsave recipe
-                                  await savedRecipeService.unsaveRecipe(recipe.id);
-                                  
-                                  if (mounted) {
-                                    // Tutup loading indicator
-                                    Navigator.of(context).pop();
-                                    
-                                    // Refresh list untuk menghilangkan resep yang di-unsave
-                                    setState(() {
-                                      _savedRecipesFuture = Future.value(
-                                        recipes.where((r) => r.id != recipe.id).toList()
-                                      );
-                                    });
-                                    
-                                    // Tampilkan snackbar konfirmasi
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: const Text('Recipe removed from saved'),
-                                        action: SnackBarAction(
-                                          label: 'Undo',
-                                          onPressed: () async {
-                                            try {
-                                              await savedRecipeService.saveRecipe(recipe);
-                                              if (mounted) {
-                                                _refreshSavedRecipes();
-                                              }
-                                            } catch (e) {
-                                              if (mounted) {
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  SnackBar(content: Text('Error: $e')),
-                                                );
-                                              }
-                                            }
-                                          },
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                } catch (e) {
-                                  // Tutup loading indicator jika terjadi error
-                                  if (mounted) {
-                                    Navigator.of(context).pop();
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Error: $e')),
-                                    );
-                                  }
-                                }
-                              },
+                            barrierDismissible: false,
+                            builder: (context) => const Center(
+                              child: CircularProgressIndicator(),
                             ),
                           );
-                        },
-                        child: RecipeGridItem(
-                          recipe: recipes[index],
-                          isSaved: true,
-                          onSaveRecipe: (recipe, isSaved) async {
-                            if (!mounted) return;
+                          
+                          // Unsave recipe
+                          await savedRecipeService.unsaveRecipe(recipe.id);
+                          
+                          if (mounted) {
+                            // Close loading indicator
+                            Navigator.of(context).pop();
                             
-                            try {
-                              final savedRecipeService = Provider.of<SavedRecipeService>(
-                                context, 
-                                listen: false
+                            // Update the list
+                            setState(() {
+                              _savedRecipesFuture = Future.value(
+                                recipes.where((r) => r.id != recipe.id).toList()
                               );
-                              
-                              // Tampilkan loading indicator
-                              showDialog(
-                                context: context,
-                                barrierDismissible: false,
-                                builder: (context) => const Center(
-                                  child: CircularProgressIndicator(),
+                            });
+                            
+                            // Show confirmation snackbar
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text('Recipe removed from saved'),
+                                action: SnackBarAction(
+                                  label: 'Undo',
+                                  onPressed: () async {
+                                    try {
+                                      await savedRecipeService.saveRecipe(recipe);
+                                      if (mounted) {
+                                        _refreshSavedRecipes();
+                                      }
+                                    } catch (e) {
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('Failed to restore recipe: $e'),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  },
                                 ),
-                              );
-                              
-                              // Unsave recipe
-                              await savedRecipeService.unsaveRecipe(recipe.id);
-                              
-                              if (mounted) {
-                                // Tutup loading indicator
-                                Navigator.of(context).pop();
-                                
-                                // Refresh list untuk menghilangkan resep yang di-unsave
-                                setState(() {
-                                  _savedRecipesFuture = Future.value(
-                                    recipes.where((r) => r.id != recipe.id).toList()
-                                  );
-                                });
-                                
-                                // Tampilkan snackbar konfirmasi
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text('Recipe removed from saved'),
-                                    action: SnackBarAction(
-                                      label: 'Undo',
-                                      onPressed: () async {
-                                        try {
-                                          await savedRecipeService.saveRecipe(recipe);
-                                          if (mounted) {
-                                            _refreshSavedRecipes();
-                                          }
-                                        } catch (e) {
-                                          if (mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(content: Text('Error: $e')),
-                                            );
-                                          }
-                                        }
-                                      },
-                                    ),
-                                  ),
-                                );
-                              }
-                            } catch (e) {
-                              // Tutup loading indicator jika terjadi error
-                              if (mounted) {
-                                Navigator.of(context).pop();
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Error: $e')),
-                                );
-                              }
-                            }
-                          },
-                        ),
-                      );
-                    },
-                  ),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            // Close loading if showing
+                            Navigator.of(context).pop();
+                            
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Failed to remove recipe: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                    );
+                  },
                 );
               },
             ),
