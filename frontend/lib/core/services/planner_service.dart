@@ -29,7 +29,6 @@ class PlannerService with ChangeNotifier {
 
   Future<List<Planner>> getPlannedMeals(DateTime startDate, DateTime endDate) async {
     try {
-      // Wait for auth to be initialized
       await _authService.isInitialized;
       
       final userId = await _authService.getCurrentUserId();
@@ -48,7 +47,15 @@ class PlannerService with ChangeNotifier {
 
       if (response == null) return [];
       
-      final meals = (response as List).map((json) => Planner.fromJson(json)).toList();
+      // Handle ApiResponse wrapper
+      final apiResponse = response as Map<String, dynamic>;
+      if (!apiResponse['success']) {
+        throw Exception(apiResponse['message']);
+      }
+      
+      final data = apiResponse['data'] as List;
+      final meals = data.map((json) => Planner.fromJson(json)).toList();
+      
       print('Parsed ${meals.length} planned meals');
       print('Meals data: $meals');
       
@@ -61,7 +68,6 @@ class PlannerService with ChangeNotifier {
 
   Future<void> addToPlan(String recipeId, DateTime plannedDate, Recipe recipe) async {
     try {
-      // Wait for auth to be initialized
       await _authService.isInitialized;
       
       final userId = await _authService.getCurrentUserId();
@@ -69,12 +75,12 @@ class PlannerService with ChangeNotifier {
       
       final formattedDate = plannedDate.toIso8601String().split('T')[0];
       
-      print('Adding to plan: userId=$userId, recipeId=$recipeId, date=$formattedDate');
+      print('Recipe data being sent: ${recipe.toJson()}');
       
       final response = await _apiService.post(
         'planner?userId=$userId&recipeId=$recipeId&plannedDate=$formattedDate',
         {
-          'recipe': recipe.toJson(),
+          'recipe': recipe.toJson()
         }
       );
       
@@ -92,6 +98,8 @@ class PlannerService with ChangeNotifier {
       rethrow;
     }
   }
+
+
 
   Future<void> removePlannedMeal(Planner meal) async {
     try {

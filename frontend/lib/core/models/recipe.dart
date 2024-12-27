@@ -24,7 +24,7 @@ class Recipe {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'externalId': externalId,
+      'externalId': id,
       'title': title,
       'category': category,
       'thumbnailUrl': thumbnailUrl,

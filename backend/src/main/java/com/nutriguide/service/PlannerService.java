@@ -44,21 +44,26 @@ public class PlannerService {
                     });
             
             // Update recipe details
-            recipe.setTitle(recipeDto.getTitle());
-            recipe.setDescription(recipeDto.getDescription());
-            recipe.setThumbnailUrl(recipeDto.getThumbnailUrl());
-            recipe.setArea(recipeDto.getArea());
-            recipe.setCategory(recipeDto.getCategory());
-            recipe.setInstructions(recipeDto.getInstructions());
+            recipe.setTitle(recipeDto.getTitle() != null ? recipeDto.getTitle() : "");
+            recipe.setDescription(recipeDto.getDescription() != null ? recipeDto.getDescription() : "");
+            recipe.setThumbnailUrl(recipeDto.getThumbnailUrl() != null ? recipeDto.getThumbnailUrl() : "");
+            recipe.setArea(recipeDto.getArea() != null ? recipeDto.getArea() : "");
+            recipe.setCategory(recipeDto.getCategory() != null ? recipeDto.getCategory() : "");
+            recipe.setInstructions(recipeDto.getInstructions() != null ? recipeDto.getInstructions() : "");
             
-            // Handle null ingredients
-            List<String> ingredients = recipeDto.getIngredients();
-            recipe.setIngredients(ingredients != null ? String.join(",", ingredients) : "");
+            if (recipeDto.getIngredients() != null && !recipeDto.getIngredients().isEmpty()) {
+                recipe.setIngredientsList(recipeDto.getIngredients());
+            }
+            
+            if (recipeDto.getMeasures() != null && !recipeDto.getMeasures().isEmpty()) {
+                recipe.setMeasuresList(recipeDto.getMeasures());
+            }
             
             recipe.setCookingTime(recipeDto.getCookingTime());
+            
+            System.out.println("Saving recipe with title: " + recipe.getTitle());
             recipe = recipeRepository.save(recipe);
     
-            // Create planner entry
             Planner planner = new Planner();
             planner.setUser(user);
             planner.setRecipe(recipe);
@@ -68,7 +73,7 @@ public class PlannerService {
             
             return convertToDto(planner);
         } catch (Exception e) {
-            System.out.println("Error in addToPlan: " + e.getMessage());
+            System.out.println("Error adding to plan: " + e.getMessage());
             e.printStackTrace();
             throw new RuntimeException("Failed to add recipe to plan: " + e.getMessage());
         }
