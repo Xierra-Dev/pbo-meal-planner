@@ -5,6 +5,8 @@ import '../../core/models/planner.dart';
 import '../../core/services/planner_service.dart';
 import '../widgets/loading_indicator.dart';
 import '../widgets/error_view.dart';
+import '../widgets/recipe_details_dialog.dart';
+import '../widgets/recipe_card.dart';
 
 class PlannerScreen extends StatefulWidget {
   const PlannerScreen({super.key});
@@ -45,16 +47,27 @@ class _PlannerScreenState extends State<PlannerScreen> {
       
       final groupedMeals = <DateTime, List<Planner>>{};
       for (var meal in plannedMeals) {
-        final date = DateTime(
+        // Normalize both dates to compare only year, month, and day
+        final mealDate = DateTime(
           meal.plannedDate.year,
           meal.plannedDate.month,
           meal.plannedDate.day,
         );
-        groupedMeals.putIfAbsent(date, () => []).add(meal);
+        
+        print('Processing meal: ${meal.recipe.title} for date $mealDate');
+        
+        if (!groupedMeals.containsKey(mealDate)) {
+          groupedMeals[mealDate] = [];
+        }
+        groupedMeals[mealDate]!.add(meal);
       }
       
       setState(() {
         _plannedMeals = groupedMeals;
+        print('Updated planned meals map with ${groupedMeals.length} dates');
+        for (var entry in groupedMeals.entries) {
+          print('Date: ${entry.key}, Meals: ${entry.value.length}');
+        }
         _isLoading = false;
       });
     } catch (e) {
@@ -68,8 +81,8 @@ class _PlannerScreenState extends State<PlannerScreen> {
 
   Future<void> _removePlannedMeal(Planner planner) async {
     try {
-      await _plannerService.removeFromPlan(planner.id);
-      _loadPlannedMeals(); // Refresh after removing
+      await _plannerService.removePlannedMeal(planner); // Changed from removeFromPlan to removePlannedMeal
+      _loadPlannedMeals();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -137,8 +150,13 @@ class _PlannerScreenState extends State<PlannerScreen> {
                   padding: const EdgeInsets.all(16),
                   itemCount: 15, // Show 15 days
                   itemBuilder: (context, index) {
-                    final date = _selectedDate.add(Duration(days: index - 7));
+                    final date = DateTime(
+                      _selectedDate.year,
+                      _selectedDate.month,
+                      _selectedDate.day + (index - 7),
+                    );
                     final meals = _plannedMeals[date] ?? [];
+                    print('Building card for date: $date, found ${meals.length} meals');
                     return _buildDayCard(date, meals);
                   },
                 ),
@@ -150,7 +168,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
     );
   }
 
-  Widget _buildDayCard(DateTime date, List<Planner> meals) {
+    Widget _buildDayCard(DateTime date, List<Planner> meals) {
     final isToday = date.year == DateTime.now().year &&
         date.month == DateTime.now().month &&
         date.day == DateTime.now().day;
@@ -198,15 +216,31 @@ class _PlannerScreenState extends State<PlannerScreen> {
               itemCount: meals.length,
               itemBuilder: (context, index) {
                 final meal = meals[index];
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundImage: NetworkImage(meal.recipe.thumbnailUrl),
-                  ),
-                  title: Text(meal.recipe.title),
-                  subtitle: Text(meal.recipe.category ?? 'No category'),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete),
-                    onPressed: () => _removePlannedMeal(meal),
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Stack(
+                    children: [
+                      RecipeCard(
+                        recipe: meal.recipe,
+                        onTap: (recipe) {
+                          showDialog(
+                            context: context,
+                            builder: (context) => RecipeDetailsDialog(recipe: meal.recipe),
+                          );
+                        },
+                      ),
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.delete,
+                            color: Colors.red,
+                          ),
+                          onPressed: () => _removePlannedMeal(meal),
+                        ),
+                      ),
+                    ],
                   ),
                 );
               },

@@ -17,6 +17,7 @@ public class RecipeDto {
     private String area;
     private String category;
     private String instructions;
+    private Integer cookingTime;
     private List<String> ingredients;
     private List<String> measures;
 }

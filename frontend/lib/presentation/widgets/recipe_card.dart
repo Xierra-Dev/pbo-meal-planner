@@ -24,6 +24,17 @@ class RecipeCard extends StatelessWidget {
     this.isSaved = false,
   });
 
+  void _showRecipeDetails(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => RecipeDetailsDialog(
+        recipe: recipe,
+        isSaved: isSaved,
+        onSaveRecipe: onSaveRecipe,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -154,17 +165,6 @@ class RecipeCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  void _showRecipeDetails(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => RecipeDetailsDialog(
-        recipe: recipe,
-        isSaved: isSaved,
-        onSaveRecipe: onSaveRecipe,
       ),
     );
   }

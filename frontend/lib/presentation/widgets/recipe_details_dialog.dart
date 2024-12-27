@@ -37,7 +37,7 @@ class RecipeDetailsDialog extends StatelessWidget {
 
         // Add to plan menggunakan provider
         final plannerService = context.read<PlannerService>();
-        await plannerService.addToPlan(recipe.id, selectedDate);
+        await plannerService.addToPlan(recipe.id, selectedDate, recipe);
         
         if (context.mounted) {
           // Tutup loading indicator

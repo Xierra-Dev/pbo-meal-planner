@@ -1,9 +1,12 @@
 package com.nutriguide.controller;
 
+import com.nutriguide.dto.ApiResponse;
 import com.nutriguide.dto.PlannerDto;
+import com.nutriguide.dto.RecipeDto;
 import com.nutriguide.service.PlannerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,11 +22,19 @@ public class PlannerController {
     private PlannerService plannerService;
 
     @PostMapping
-    public ResponseEntity<PlannerDto> addToPlan(
-            @RequestParam Long userId,
-            @RequestParam Long recipeId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate plannedDate) {
-        return ResponseEntity.ok(plannerService.addToPlan(userId, recipeId, plannedDate));
+    public ResponseEntity<?> addToPlan(
+        @RequestParam Long userId,
+        @RequestParam String recipeId,
+        @RequestParam LocalDate plannedDate,
+        @RequestBody RecipeDto recipeDto
+    ) {
+        try {
+            PlannerDto planner = plannerService.addToPlan(userId, recipeId, plannedDate, recipeDto);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Recipe added to plan", planner));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiResponse<>(false, "Failed to add recipe to plan", null));
+        }
     }
 
     @GetMapping

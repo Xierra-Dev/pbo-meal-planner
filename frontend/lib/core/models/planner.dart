@@ -12,12 +12,17 @@ class Planner {
   });
 
   factory Planner.fromJson(Map<String, dynamic> json) {
-    print('Parsing planner JSON: $json'); // Debug log
-    return Planner(
-      id: json['id'].toString(),
-      recipe: Recipe.fromJson(json['recipe']),
-      plannedDate: DateTime.parse(json['plannedDate']),
-    );
+    print('Parsing planner JSON: $json');
+    try {
+      return Planner(
+        id: json['id'].toString(),
+        recipe: Recipe.fromJson(json['recipe'] as Map<String, dynamic>),
+        plannedDate: DateTime.parse(json['plannedDate']),
+      );
+    } catch (e) {
+      print('Error parsing planner: $e');
+      rethrow;
+    }
   }
 
   Map<String, dynamic> toJson() => {

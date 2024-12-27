@@ -11,6 +11,7 @@ import com.nutriguide.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,34 +30,43 @@ public class PlannerService {
     @Autowired
     private SavedRecipeService savedRecipeService;
 
-    public PlannerDto addToPlan(Long userId, Long recipeId, LocalDate plannedDate) {
+    public PlannerDto addToPlan(Long userId, String recipeId, LocalDate plannedDate, RecipeDto recipeDto) {
         try {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("User not found"));
     
-            // Create or get recipe in database
-            Recipe recipe = recipeRepository.findByExternalId(recipeId.toString())
+            // Save or update recipe
+            Recipe recipe = recipeRepository.findByExternalId(recipeId)
                     .orElseGet(() -> {
                         Recipe newRecipe = new Recipe();
-                        newRecipe.setExternalId(recipeId.toString());
-                        newRecipe.setTitle("Recipe " + recipeId);
-                        newRecipe.setCategory("Uncategorized");
-                        return recipeRepository.save(newRecipe);
+                        newRecipe.setExternalId(recipeId);
+                        return newRecipe;
                     });
+            
+            // Update recipe details
+            recipe.setTitle(recipeDto.getTitle());
+            recipe.setDescription(recipeDto.getDescription());
+            recipe.setThumbnailUrl(recipeDto.getThumbnailUrl());
+            recipe.setArea(recipeDto.getArea());
+            recipe.setCategory(recipeDto.getCategory());
+            recipe.setInstructions(recipeDto.getInstructions());
+            
+            // Handle null ingredients
+            List<String> ingredients = recipeDto.getIngredients();
+            recipe.setIngredients(ingredients != null ? String.join(",", ingredients) : "");
+            
+            recipe.setCookingTime(recipeDto.getCookingTime());
+            recipe = recipeRepository.save(recipe);
     
-            // Check for existing plan
-            if (plannerRepository.existsByUserIdAndRecipeIdAndPlannedDate(userId, recipe.getId(), plannedDate)) {
-                throw new RuntimeException("Recipe already planned for this date");
-            }
-    
+            // Create planner entry
             Planner planner = new Planner();
             planner.setUser(user);
             planner.setRecipe(recipe);
             planner.setPlannedDate(plannedDate);
-    
-            PlannerDto result = convertToDto(plannerRepository.save(planner));
-            System.out.println("Successfully added to plan: " + result);
-            return result;
+            
+            planner = plannerRepository.save(planner);
+            
+            return convertToDto(planner);
         } catch (Exception e) {
             System.out.println("Error in addToPlan: " + e.getMessage());
             e.printStackTrace();
@@ -88,7 +98,8 @@ public class PlannerService {
                         recipeDto.setArea(recipe.getArea());
                         recipeDto.setCategory(recipe.getCategory());
                         recipeDto.setInstructions(recipe.getInstructions());
-                        
+                        recipeDto.setIngredients(Arrays.asList(recipe.getIngredients().split(","))); // Convert String to List
+                        recipeDto.setCookingTime(recipe.getCookingTime());
                         dto.setRecipe(recipeDto);
                         return dto;
                     })

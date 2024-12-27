@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../models/planner.dart';
+import '../models/recipe.dart';
 import 'api_service.dart';
 import 'auth_service.dart';
 
@@ -8,23 +9,29 @@ class PlannerService with ChangeNotifier {
   final AuthService _authService;
   bool _disposed = false;
 
-  PlannerService(this._apiService, this._authService);
+  PlannerService(this._apiService, this._authService) {
+    // Listen to auth state changes
+    _authService.addListener(_onAuthStateChanged);
+  }
+
+  void _onAuthStateChanged() {
+    if (!_disposed) {
+      notifyListeners();
+    }
+  }
 
   @override
   void dispose() {
     _disposed = true;
+    _authService.removeListener(_onAuthStateChanged);
     super.dispose();
-  }
-
-  @override
-  void notifyListeners() {
-    if (!_disposed) {
-      super.notifyListeners();
-    }
   }
 
   Future<List<Planner>> getPlannedMeals(DateTime startDate, DateTime endDate) async {
     try {
+      // Wait for auth to be initialized
+      await _authService.isInitialized;
+      
       final userId = await _authService.getCurrentUserId();
       if (userId == null) throw Exception('User not logged in');
 
@@ -52,8 +59,11 @@ class PlannerService with ChangeNotifier {
     }
   }
 
-  Future<void> addToPlan(String recipeId, DateTime plannedDate) async {
+  Future<void> addToPlan(String recipeId, DateTime plannedDate, Recipe recipe) async {
     try {
+      // Wait for auth to be initialized
+      await _authService.isInitialized;
+      
       final userId = await _authService.getCurrentUserId();
       if (userId == null) throw Exception('User not logged in');
       
@@ -63,44 +73,41 @@ class PlannerService with ChangeNotifier {
       
       final response = await _apiService.post(
         'planner?userId=$userId&recipeId=$recipeId&plannedDate=$formattedDate',
-        {}
+        {
+          'recipe': recipe.toJson(),
+        }
       );
       
       print('Add to plan response: $response');
       
       if (response == null) {
-        throw Exception('Failed to add recipe to plan: No response from server');
+        throw Exception('Failed to add recipe to plan');
       }
       
-      // Refresh data and notify listeners
-      await getPlannedMeals(plannedDate, plannedDate.add(const Duration(days: 7)));
-      notifyListeners();
-      
+      if (!_disposed) {
+        notifyListeners();
+      }
     } catch (e) {
       print('Error adding to plan: $e');
-      throw Exception('Failed to add recipe to plan: $e');
+      rethrow;
     }
   }
 
-  Future<void> removeFromPlan(String plannerId) async {
+  Future<void> removePlannedMeal(Planner meal) async {
     try {
+      await _authService.isInitialized;
+      
       final userId = await _authService.getCurrentUserId();
       if (userId == null) throw Exception('User not logged in');
 
-      print('Removing from plan: plannerId=$plannerId');
-
-      final response = await _apiService.delete('planner/$plannerId?userId=$userId');
+      await _apiService.delete('planner/${meal.id}?userId=$userId');
       
-      print('Remove from plan response: $response');
-
-      if (response == null) {
-        throw Exception('Failed to remove recipe from plan: No response from server');
+      if (!_disposed) {
+        notifyListeners();
       }
-
-      notifyListeners();
     } catch (e) {
-      print('Error removing from plan: $e');
-      throw Exception('Failed to remove recipe from plan: $e');
+      print('Error removing planned meal: $e');
+      rethrow;
     }
   }
 }

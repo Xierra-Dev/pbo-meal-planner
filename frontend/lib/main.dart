@@ -8,6 +8,7 @@ import 'presentation/pages/splash_screen.dart';
 import 'core/services/api_service.dart';
 
 void main() {
+  Provider.debugCheckInvalidValueType = null;
   runApp(
     MultiProvider(
       providers: [

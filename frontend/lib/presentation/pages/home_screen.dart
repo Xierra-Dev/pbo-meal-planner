@@ -62,7 +62,13 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               itemBuilder: (BuildContext context) => [
                 PopupMenuItem(
-                  child: const Text('Profile'),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.person_outline),
+                      const SizedBox(width: 8),
+                      const Text('Profile'),
+                    ],
+                  ),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -70,12 +76,24 @@ class _HomeScreenState extends State<HomeScreen> {
                     );
                   },
                 ),
-                const PopupMenuItem(
-                  child: Text('Help'),
-                  value: 'help',
+                PopupMenuItem(
+                  child: Row(
+                    children: [
+                      const Icon(Icons.settings_outlined),
+                      const SizedBox(width: 8),
+                      const Text('Settings'),
+                    ],
+                  ),
+                  value: 'settings',
                 ),
                 PopupMenuItem(
-                  child: const Text('Logout'),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.logout, color: Colors.red),
+                      const SizedBox(width: 8),
+                      const Text('Logout', style: TextStyle(color: Colors.red)),
+                    ],
+                  ),
                   onTap: () async {
                     final authService = Provider.of<AuthService>(context, listen: false);
                     await authService.logout();
