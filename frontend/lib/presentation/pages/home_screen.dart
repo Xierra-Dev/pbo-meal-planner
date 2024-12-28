@@ -11,7 +11,8 @@ import 'profile_screen.dart';
 import 'auth/login_screen.dart';
 import '../widgets/recipe_card.dart';
 import '../widgets/popup_recipe_grid.dart';
-import '../widgets/recipe_details_dialog.dart';
+import '../widgets/dialogs/recipe_details_dialog.dart';
+import '../widgets/dialogs/settings_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -86,7 +87,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       const Text('Settings'),
                     ],
                   ),
-                  value: 'settings',
+                  onTap: () {
+                    // Delay untuk menunggu popup menu ditutup
+                    Future.delayed(const Duration(milliseconds: 10), () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => const SettingsDialog(),
+                      );
+                    });
+                  },
                 ),
                 PopupMenuItem(
                   child: Row(

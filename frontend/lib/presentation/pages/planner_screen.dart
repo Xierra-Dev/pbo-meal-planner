@@ -5,7 +5,7 @@ import '../../core/models/planner.dart';
 import '../../core/services/planner_service.dart';
 import '../widgets/loading_indicator.dart';
 import '../widgets/error_view.dart';
-import '../widgets/recipe_details_dialog.dart';
+import '../widgets/dialogs/recipe_details_dialog.dart';
 import '../widgets/recipe_card.dart';
 
 class PlannerScreen extends StatefulWidget {

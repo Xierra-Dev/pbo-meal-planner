@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import '../constants/api_constants.dart';
+import '../models/user.dart';
 
 class AuthService with ChangeNotifier {
   final _storage = const FlutterSecureStorage();
@@ -214,16 +215,57 @@ class AuthService with ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>> getUserProfile(String userId) async {
-    final response = await http.get(
-      Uri.parse('${ApiConstants.baseUrl}/users/$userId/profile'),
-      headers: {'Content-Type': 'application/json'},
-    );
-    
-    if (response.statusCode == 200) {
-      return json.decode(response.body);
-    } else {
-      throw Exception('Failed to load profile');
+  Future<Map<String, dynamic>> getUserProfile([String? userId]) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      // Get current user ID if not provided
+      final currentUserId = userId ?? await getCurrentUserId();
+      if (currentUserId == null) {
+        throw Exception('No user logged in');
+      }
+
+      // Get auth token
+      final token = await getToken();
+      if (token == null) {
+        throw Exception('No auth token found');
+      }
+
+      // Make API request
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/users/$currentUserId/profile'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        
+        // Update stored user data
+        if (data['email'] != null) {
+          await _storage.write(key: 'email', value: data['email']);
+          _email = data['email'];
+        }
+        if (data['username'] != null) {
+          await _storage.write(key: 'username', value: data['username']);
+          _username = data['username'];
+        }
+
+        notifyListeners();
+        return data;
+      } else {
+        final error = json.decode(response.body);
+        throw Exception(error['message'] ?? 'Failed to get user profile');
+      }
+    } catch (e) {
+      print('Error getting user profile: $e');
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 }

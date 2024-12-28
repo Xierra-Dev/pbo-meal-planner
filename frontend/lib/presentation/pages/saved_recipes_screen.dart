@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/models/recipe.dart';
 import '../../core/services/saved_recipe_service.dart';
 import '../widgets/recipe_card.dart';
-import '../widgets/recipe_details_dialog.dart';
+import '../widgets/dialogs/recipe_details_dialog.dart';
 
 class SavedRecipesScreen extends StatefulWidget {
   const SavedRecipesScreen({super.key});
