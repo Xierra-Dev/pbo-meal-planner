@@ -35,22 +35,27 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
+            // Logo dan Nama Aplikasi
             const Text(
               'Nutriguide',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
-            const SizedBox(width: 115),
-            Padding(
-              padding: const EdgeInsets.only(left: 80),
-              child: NavigationButtons(
-                selectedIndex: _selectedIndex,
-                onIndexChanged: (index) {
-                  setState(() => _selectedIndex = index);
-                },
+            
+            // Navigation Buttons di tengah
+            Expanded(
+              child: Center(
+                child: NavigationButtons(
+                  selectedIndex: _selectedIndex,
+                  onIndexChanged: (index) {
+                    setState(() => _selectedIndex = index);
+                  },
+                ),
               ),
             ),
-            const Spacer(),
+
+            // Profile Menu
             PopupMenuButton(
               offset: const Offset(0, 40),
               child: const CircleAvatar(
@@ -103,7 +108,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-            const SizedBox(width: 16),
           ],
         ),
         automaticallyImplyLeading: false,
@@ -687,34 +691,35 @@ class NavigationButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(30),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           _NavButton(
+            icon: Icons.home_outlined,
             label: 'Home',
-            icon: Icons.home,
             isSelected: selectedIndex == 0,
             onTap: () => onIndexChanged(0),
           ),
           _NavButton(
+            icon: Icons.explore_outlined,
             label: 'Explore',
-            icon: Icons.explore,
             isSelected: selectedIndex == 1,
             onTap: () => onIndexChanged(1),
           ),
           _NavButton(
+            icon: Icons.bookmark_outline,
             label: 'Saved',
-            icon: Icons.bookmark,
             isSelected: selectedIndex == 2,
             onTap: () => onIndexChanged(2),
           ),
           _NavButton(
+            icon: Icons.calendar_today_outlined,
             label: 'Planner',
-            icon: Icons.calendar_today,
             isSelected: selectedIndex == 3,
             onTap: () => onIndexChanged(3),
           ),
@@ -725,14 +730,14 @@ class NavigationButtons extends StatelessWidget {
 }
 
 class _NavButton extends StatelessWidget {
-  final String label;
   final IconData icon;
+  final String label;
   final bool isSelected;
   final VoidCallback onTap;
 
   const _NavButton({
-    required this.label,
     required this.icon,
+    required this.label,
     required this.isSelected,
     required this.onTap,
   });
@@ -755,19 +760,18 @@ class _NavButton extends StatelessWidget {
             children: [
               Icon(
                 icon,
-                size: 20,
                 color: isSelected ? Colors.white : Colors.grey[700],
+                size: 20,
               ),
-              if (isSelected) ...[
-                const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.grey[700],
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  fontSize: 14,
                 ),
-              ],
+              ),
             ],
           ),
         ),
