@@ -26,4 +26,16 @@ public class Planner {
     
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    @Column(nullable = false)
+    private boolean completed = false;  // Add this field
+    
+    // Add getter and setter
+    public boolean isCompleted() {
+        return completed;
+    }
+    
+    public void setCompleted(boolean completed) {
+        this.completed = completed;
+    }
 }

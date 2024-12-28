@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/services/profile_service.dart';
+import 'package:intl/intl.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -443,56 +445,108 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                               onPressed: () {
                                 // Refresh nutrition data
+                                context.read<ProfileService>().resetTodayNutrition();
                               },
                             ),
                           ],
                         ),
                         Text(
-                          'Saturday, December 28',
+                          DateFormat('EEEE, MMMM d').format(DateTime.now()),
                           style: TextStyle(
                             color: Colors.grey[600],
                             fontSize: 14,
                           ),
                         ),
                         const SizedBox(height: 20),
-                        _NutritionProgressBar(
-                          label: 'Calories',
-                          current: 0,
-                          target: 1766,
-                          unit: 'kcal',
-                          color: Colors.blue[400]!,
+                        
+                        // Nutrition Goals Summary
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Consumer<ProfileService>(
+                              builder: (context, profileService, _) => _NutritionItem(
+                                label: 'Cal',
+                                value: '${profileService.todayNutrition.calories.toInt()}',
+                                color: Colors.blue[400]!,
+                              ),
+                            ),
+                            Consumer<ProfileService>(
+                              builder: (context, profileService, _) => _NutritionItem(
+                                label: 'Carbs',
+                                value: '${profileService.todayNutrition.carbs.toInt()}g',
+                                color: Colors.orange[400]!,
+                              ),
+                            ),
+                            Consumer<ProfileService>(
+                              builder: (context, profileService, _) => _NutritionItem(
+                                label: 'Fiber',
+                                value: '${profileService.todayNutrition.fiber.toInt()}g',
+                                color: Colors.green[400]!,
+                              ),
+                            ),
+                            Consumer<ProfileService>(
+                              builder: (context, profileService, _) => _NutritionItem(
+                                label: 'Protein',
+                                value: '${profileService.todayNutrition.protein.toInt()}g',
+                                color: Colors.pink[400]!,
+                              ),
+                            ),
+                            Consumer<ProfileService>(
+                              builder: (context, profileService, _) => _NutritionItem(
+                                label: 'Fat',
+                                value: '${profileService.todayNutrition.totalFat.toInt()}g',
+                                color: Colors.purple[400]!,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 12),
-                        _NutritionProgressBar(
-                          label: 'Carbs',
-                          current: 0,
-                          target: 274,
-                          unit: 'g',
-                          color: Colors.orange[400]!,
-                        ),
-                        const SizedBox(height: 12),
-                        _NutritionProgressBar(
-                          label: 'Fiber',
-                          current: 0,
-                          target: 30,
-                          unit: 'g',
-                          color: Colors.green[400]!,
-                        ),
-                        const SizedBox(height: 12),
-                        _NutritionProgressBar(
-                          label: 'Protein',
-                          current: 0,
-                          target: 79,
-                          unit: 'g',
-                          color: Colors.pink[400]!,
-                        ),
-                        const SizedBox(height: 12),
-                        _NutritionProgressBar(
-                          label: 'Fat',
-                          current: 0,
-                          target: 39,
-                          unit: 'g',
-                          color: Colors.purple[400]!,
+                        const SizedBox(height: 20),
+
+                        // Progress Bars
+                        Consumer<ProfileService>(
+                          builder: (context, profileService, _) => Column(
+                            children: [
+                              _NutritionProgressBar(
+                                label: 'Calories',
+                                current: profileService.todayNutrition.calories,
+                                target: 1766,
+                                unit: 'kcal',
+                                color: Colors.blue[400]!,
+                              ),
+                              const SizedBox(height: 12),
+                              _NutritionProgressBar(
+                                label: 'Carbs',
+                                current: profileService.todayNutrition.carbs,
+                                target: 274,
+                                unit: 'g',
+                                color: Colors.orange[400]!,
+                              ),
+                              const SizedBox(height: 12),
+                              _NutritionProgressBar(
+                                label: 'Fiber',
+                                current: profileService.todayNutrition.fiber,
+                                target: 30,
+                                unit: 'g',
+                                color: Colors.green[400]!,
+                              ),
+                              const SizedBox(height: 12),
+                              _NutritionProgressBar(
+                                label: 'Protein',
+                                current: profileService.todayNutrition.protein,
+                                target: 79,
+                                unit: 'g',
+                                color: Colors.pink[400]!,
+                              ),
+                              const SizedBox(height: 12),
+                              _NutritionProgressBar(
+                                label: 'Fat',
+                                current: profileService.todayNutrition.totalFat,
+                                target: 39,
+                                unit: 'g',
+                                color: Colors.purple[400]!,
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -500,9 +554,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const SizedBox(height: 32),
-
-              // Settings and Logout buttons
-              // ... existing buttons ...
             ],
           ),
         ),

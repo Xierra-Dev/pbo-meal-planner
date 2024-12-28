@@ -127,6 +127,18 @@ public class PlannerService {
         plannerRepository.delete(planner);
     }
 
+    public void toggleMealCompletion(Long plannerId, Long userId, boolean completed) {
+        Planner planner = plannerRepository.findById(plannerId)
+                .orElseThrow(() -> new RuntimeException("Planner item not found"));
+                
+        if (!planner.getUser().getId().equals(userId)) {
+            throw new RuntimeException("Unauthorized access");
+        }
+        
+        planner.setCompleted(completed);
+        plannerRepository.save(planner);
+    }
+
     private PlannerDto convertToDto(Planner planner) {
         PlannerDto dto = new PlannerDto();
         dto.setId(planner.getId());

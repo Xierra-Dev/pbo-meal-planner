@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'nutrition_info.dart';
 
 class Recipe {
   final String id;
@@ -12,6 +13,7 @@ class Recipe {
   final String area;
   final double healthScore;
   final NutritionInfo nutritionInfo;
+  final int cookingTime;
 
   Recipe({
     required this.id,
@@ -25,6 +27,7 @@ class Recipe {
     required this.area,
     required this.healthScore,
     required this.nutritionInfo,
+    this.cookingTime = 30,
   });
 
   Map<String, dynamic> toJson() {
@@ -40,13 +43,14 @@ class Recipe {
       'area': area,
       'healthScore': healthScore,
       'nutritionInfo': nutritionInfo.toJson(),
+      'cookingTime': cookingTime,
     };
   }
 
   factory Recipe.fromJson(Map<String, dynamic> json) {
     return Recipe(
       id: json['id'].toString(),
-      externalId: json['externalId'] ?? '',
+      externalId: json['externalId']?.toString() ?? '',
       title: json['title'] ?? '',
       category: json['category'] ?? '',
       thumbnailUrl: json['thumbnailUrl'] ?? '',
@@ -58,6 +62,7 @@ class Recipe {
       nutritionInfo: json['nutritionInfo'] != null 
           ? NutritionInfo.fromJson(json['nutritionInfo'])
           : NutritionInfo.generateRandom(),
+      cookingTime: json['cookingTime'] ?? 30,
     );
   }
 
@@ -73,8 +78,8 @@ class Recipe {
     }
 
     return Recipe(
-      id: json['idMeal'] ?? '',
-      externalId: json['idMeal'] ?? '',
+      id: json['idMeal']?.toString() ?? '',
+      externalId: json['idMeal']?.toString() ?? '',
       title: json['strMeal'] ?? '',
       category: json['strCategory'] ?? '',
       thumbnailUrl: json['strMealThumb'] ?? '',
@@ -84,6 +89,37 @@ class Recipe {
       area: json['strArea'] ?? '',
       healthScore: calculateHealthScore(ingredients),
       nutritionInfo: NutritionInfo.generateRandom(),
+      cookingTime: Random().nextInt(45) + 15, // Random time between 15-60 minutes
+    );
+  }
+
+  Recipe copyWith({
+    String? id,
+    String? externalId,
+    String? title,
+    String? category,
+    String? thumbnailUrl,
+    String? instructions,
+    List<String>? ingredients,
+    List<String>? measures,
+    String? area,
+    double? healthScore,
+    NutritionInfo? nutritionInfo,
+    int? cookingTime,
+  }) {
+    return Recipe(
+      id: id ?? this.id,
+      externalId: externalId ?? this.externalId,
+      title: title ?? this.title,
+      category: category ?? this.category,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      instructions: instructions ?? this.instructions,
+      ingredients: ingredients ?? this.ingredients,
+      measures: measures ?? this.measures,
+      area: area ?? this.area,
+      healthScore: healthScore ?? this.healthScore,
+      nutritionInfo: nutritionInfo ?? this.nutritionInfo,
+      cookingTime: cookingTime ?? this.cookingTime,
     );
   }
 
@@ -201,71 +237,15 @@ class Recipe {
     if (ingredients.any((i) => i.toLowerCase().contains('dessert'))) score -= 0.3;
     
     // Normalize score between 0 and 10
-    score = score.clamp(0, 10);
-    
-    // Round to 1 decimal place
-    return (score * 10).round() / 10;
-  }
-}
-
-class NutritionInfo {
-  final int calories;
-  final double totalFat;
-  final double saturatedFat;
-  final double carbs;
-  final double sugars;
-  final double protein;
-  final int sodium;
-  final double fiber;
-
-  NutritionInfo({
-    required this.calories,
-    required this.totalFat,
-    required this.saturatedFat,
-    required this.carbs,
-    required this.sugars,
-    required this.protein,
-    required this.sodium,
-    required this.fiber,
-  });
-
-  Map<String, dynamic> toJson() {
-    return {
-      'calories': calories,
-      'totalFat': totalFat,
-      'saturatedFat': saturatedFat,
-      'carbs': carbs,
-      'sugars': sugars,
-      'protein': protein,
-      'sodium': sodium,
-      'fiber': fiber,
-    };
+    return score.clamp(0, 10);
   }
 
-  factory NutritionInfo.fromJson(Map<String, dynamic> json) {
-    return NutritionInfo(
-      calories: json['calories'] ?? 0,
-      totalFat: (json['totalFat'] ?? 0).toDouble(),
-      saturatedFat: (json['saturatedFat'] ?? 0).toDouble(),
-      carbs: (json['carbs'] ?? 0).toDouble(),
-      sugars: (json['sugars'] ?? 0).toDouble(),
-      protein: (json['protein'] ?? 0).toDouble(),
-      sodium: json['sodium'] ?? 0,
-      fiber: (json['fiber'] ?? 0).toDouble(),
-    );
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is Recipe && other.id == id;
   }
 
-  factory NutritionInfo.generateRandom() {
-    final random = Random();
-    return NutritionInfo(
-      calories: 200 + random.nextInt(800),
-      totalFat: (5 + random.nextInt(25)).toDouble(),
-      saturatedFat: (1 + random.nextInt(8)).toDouble(),
-      carbs: (10 + random.nextInt(40)).toDouble(),
-      sugars: (2 + random.nextInt(15)).toDouble(),
-      protein: (8 + random.nextInt(30)).toDouble(),
-      sodium: 100 + random.nextInt(900),
-      fiber: (random.nextInt(5)).toDouble(),
-    );
-  }
+  @override
+  int get hashCode => id.hashCode;
 }

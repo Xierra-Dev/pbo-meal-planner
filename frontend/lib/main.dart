@@ -4,6 +4,7 @@ import 'core/services/auth_service.dart';
 import 'core/services/saved_recipe_service.dart';
 import 'core/services/planner_service.dart';
 import 'core/services/recipe_service.dart';
+import 'core/services/profile_service.dart';
 import 'presentation/pages/splash_screen.dart';
 import 'core/services/api_service.dart';
 
@@ -31,6 +32,9 @@ void main() {
             context.read<ApiService>(),
             context.read<AuthService>(),
           ),
+        ),
+        ChangeNotifierProvider<ProfileService>(
+          create: (_) => ProfileService(),
         ),
       ],
       child: const MyApp(),

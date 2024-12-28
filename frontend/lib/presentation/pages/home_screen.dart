@@ -34,94 +34,130 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            // Logo dan Nama Aplikasi
-            const Text(
-              'NutriGuide',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            
-            // Navigation Buttons di tengah
-            Expanded(
-              child: Center(
-                child: NavigationButtons(
-                  selectedIndex: _selectedIndex,
-                  onIndexChanged: (index) {
-                    setState(() => _selectedIndex = index);
-                  },
-                ),
-              ),
-            ),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: AppBar(
+              automaticallyImplyLeading: false,
+              title: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Logo dan Nama Aplikasi
+                    Row(
+                      children: [
+                        Image.asset(
+                          'assets/images/logo.png',
+                          height: 32,
+                          width: 32,
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'NutriGuide',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    
+                    // Navigation Buttons di tengah
+                    Expanded(
+                      child: Center(
+                        child: NavigationButtons(
+                          selectedIndex: _selectedIndex,
+                          onIndexChanged: (index) {
+                            setState(() => _selectedIndex = index);
+                          },
+                        ),
+                      ),
+                    ),
 
-            // Profile Menu
-            PopupMenuButton(
-              offset: const Offset(0, 40),
-              child: const CircleAvatar(
-                radius: 15,
-                backgroundImage: AssetImage('assets/images/profile.jpg'),
+                    // Profile Menu with Arrow
+                    PopupMenuButton(
+                      offset: const Offset(0, 40),
+                      child: Row(
+                        children: [
+                          const CircleAvatar(
+                            radius: 15,
+                            backgroundImage: AssetImage('assets/images/profile.jpg'),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.arrow_drop_down,
+                            color: Colors.grey[700],
+                          ),
+                        ],
+                      ),
+                      itemBuilder: (BuildContext context) => [
+                        PopupMenuItem(
+                          child: Row(
+                            children: [
+                              const Icon(Icons.person_outline),
+                              const SizedBox(width: 8),
+                              const Text('Profile'),
+                            ],
+                          ),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                            );
+                          },
+                        ),
+                        PopupMenuItem(
+                          child: Row(
+                            children: [
+                              const Icon(Icons.settings_outlined),
+                              const SizedBox(width: 8),
+                              const Text('Settings'),
+                            ],
+                          ),
+                          onTap: () {
+                            Future.delayed(const Duration(milliseconds: 10), () {
+                              showDialog(
+                                context: context,
+                                builder: (context) => const SettingsDialog(),
+                              );
+                            });
+                          },
+                        ),
+                        PopupMenuItem(
+                          child: Row(
+                            children: [
+                              const Icon(Icons.logout, color: Colors.red),
+                              const SizedBox(width: 8),
+                              const Text('Logout', style: TextStyle(color: Colors.red)),
+                            ],
+                          ),
+                          onTap: () async {
+                            final authService = Provider.of<AuthService>(context, listen: false);
+                            await authService.logout();
+                            if (mounted) {
+                              Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                              );
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-              itemBuilder: (BuildContext context) => [
-                PopupMenuItem(
-                  child: Row(
-                    children: [
-                      const Icon(Icons.person_outline),
-                      const SizedBox(width: 8),
-                      const Text('Profile'),
-                    ],
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                    );
-                  },
-                ),
-                PopupMenuItem(
-                  child: Row(
-                    children: [
-                      const Icon(Icons.settings_outlined),
-                      const SizedBox(width: 8),
-                      const Text('Settings'),
-                    ],
-                  ),
-                  onTap: () {
-                    // Delay untuk menunggu popup menu ditutup
-                    Future.delayed(const Duration(milliseconds: 10), () {
-                      showDialog(
-                        context: context,
-                        builder: (context) => const SettingsDialog(),
-                      );
-                    });
-                  },
-                ),
-                PopupMenuItem(
-                  child: Row(
-                    children: [
-                      const Icon(Icons.logout, color: Colors.red),
-                      const SizedBox(width: 8),
-                      const Text('Logout', style: TextStyle(color: Colors.red)),
-                    ],
-                  ),
-                  onTap: () async {
-                    final authService = Provider.of<AuthService>(context, listen: false);
-                    await authService.logout();
-                    if (mounted) {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(builder: (_) => const LoginScreen()),
-                      );
-                    }
-                  },
-                ),
-              ],
+              backgroundColor: Colors.transparent,
+              elevation: 0,
             ),
-          ],
+          ),
         ),
-        automaticallyImplyLeading: false,
       ),
-      body: _screens[_selectedIndex],
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: _screens[_selectedIndex],
+        ),
+      ),
     );
   }
 }

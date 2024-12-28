@@ -2,9 +2,12 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../constants/api_constants.dart';
+import 'package:dio/dio.dart';
 
 class ApiService {
   final storage = const FlutterSecureStorage();
+  final _dio = Dio();  // Add this line
+  final _baseUrl = ApiConstants.baseUrl;
 
   Future<String?> getToken() async {
     return await storage.read(key: 'auth_token');
@@ -45,6 +48,16 @@ class ApiService {
       return json.decode(response.body);
     } else {
       throw Exception('Failed to post data');
+    }
+  }
+
+  Future<Map<String, dynamic>?> patch(String endpoint, Map<String, dynamic> data) async {
+    try {
+      final response = await _dio.patch('$_baseUrl/$endpoint', data: data);
+      return response.data;
+    } catch (e) {
+      print('PATCH request error: $e');
+      return null;
     }
   }
 

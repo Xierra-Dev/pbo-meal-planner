@@ -57,7 +57,6 @@ class PlannerService with ChangeNotifier {
       final meals = data.map((json) => Planner.fromJson(json)).toList();
       
       print('Parsed ${meals.length} planned meals');
-      print('Meals data: $meals');
       
       return meals;
     } catch (e) {
@@ -99,8 +98,6 @@ class PlannerService with ChangeNotifier {
     }
   }
 
-
-
   Future<void> removePlannedMeal(Planner meal) async {
     try {
       await _authService.isInitialized;
@@ -116,6 +113,54 @@ class PlannerService with ChangeNotifier {
     } catch (e) {
       print('Error removing planned meal: $e');
       rethrow;
+    }
+  }
+
+    Future<void> toggleMealCompletion(Planner meal) async {
+    try {
+      await _authService.isInitialized;
+      
+      final userId = await _authService.getCurrentUserId();
+      if (userId == null) throw Exception('User not logged in');
+
+      print('Sending completion toggle request:');
+      print('URL: planner/${meal.id}/toggle-completion');
+      print('Data: userId=$userId, completed=${!meal.isCompleted}');
+
+      // Remove duplicate /api/ prefix
+      final response = await _apiService.patch(
+        'planner/${meal.id}/toggle-completion?userId=$userId&completed=${!meal.isCompleted}',
+        {} // empty body
+      );
+      
+      print('Toggle completion response: $response');
+      
+      if (response == null) {
+        throw Exception('Failed to update meal completion status');
+      }
+      
+      if (!_disposed) {
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error toggling meal completion: $e');
+      rethrow;
+    }
+  }
+
+  Future<List<Planner>> getTodayMeals() async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return getPlannedMeals(today, today);
+  }
+
+  Future<bool> isMealPlanned(String recipeId, DateTime date) async {
+    try {
+      final meals = await getPlannedMeals(date, date);
+      return meals.any((meal) => meal.recipe.id == recipeId);
+    } catch (e) {
+      print('Error checking if meal is planned: $e');
+      return false;
     }
   }
 }

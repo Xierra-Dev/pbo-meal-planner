@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../../core/models/planner.dart';
 import '../../core/services/planner_service.dart';
+import '../../core/services/profile_service.dart';
+import '../widgets/meal_card.dart';
 import '../widgets/loading_indicator.dart';
 import '../widgets/error_view.dart';
-import '../widgets/dialogs/recipe_details_dialog.dart';
-import '../widgets/recipe_card.dart';
 
 class PlannerScreen extends StatefulWidget {
   const PlannerScreen({super.key});
@@ -16,20 +16,20 @@ class PlannerScreen extends StatefulWidget {
 }
 
 class _PlannerScreenState extends State<PlannerScreen> {
-  late final PlannerService _plannerService;
-  Map<DateTime, List<Planner>> _plannedMeals = {};
   DateTime _selectedDate = DateTime.now();
   bool _isLoading = true;
   String? _error;
+  Map<DateTime, List<Planner>> _plannedMeals = {};
 
   @override
   void initState() {
     super.initState();
-    _plannerService = Provider.of<PlannerService>(context, listen: false);
     _loadPlannedMeals();
   }
 
   Future<void> _loadPlannedMeals() async {
+    if (!mounted) return;
+
     setState(() {
       _isLoading = true;
       _error = null;
@@ -39,55 +39,49 @@ class _PlannerScreenState extends State<PlannerScreen> {
       final startDate = _selectedDate.subtract(const Duration(days: 7));
       final endDate = _selectedDate.add(const Duration(days: 7));
       
-      print('Loading meals from $startDate to $endDate');
-      
-      final plannedMeals = await _plannerService.getPlannedMeals(startDate, endDate);
-      
-      print('Loaded ${plannedMeals.length} meals');
-      
+      final plannedMeals = await context
+          .read<PlannerService>()
+          .getPlannedMeals(startDate, endDate);
+
       final groupedMeals = <DateTime, List<Planner>>{};
       for (var meal in plannedMeals) {
-        // Normalize both dates to compare only year, month, and day
-        final mealDate = DateTime(
+        final date = DateTime(
           meal.plannedDate.year,
           meal.plannedDate.month,
           meal.plannedDate.day,
         );
         
-        print('Processing meal: ${meal.recipe.title} for date $mealDate');
-        
-        if (!groupedMeals.containsKey(mealDate)) {
-          groupedMeals[mealDate] = [];
+        if (!groupedMeals.containsKey(date)) {
+          groupedMeals[date] = [];
         }
-        groupedMeals[mealDate]!.add(meal);
+        groupedMeals[date]!.add(meal);
       }
-      
-      setState(() {
-        _plannedMeals = groupedMeals;
-        print('Updated planned meals map with ${groupedMeals.length} dates');
-        for (var entry in groupedMeals.entries) {
-          print('Date: ${entry.key}, Meals: ${entry.value.length}');
-        }
-        _isLoading = false;
-      });
+
+      if (mounted) {
+        setState(() {
+          _plannedMeals = groupedMeals;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      print('Error loading meals: $e');
-      setState(() {
-        _error = 'Failed to load planned meals: $e';
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = 'Failed to load planned meals: $e';
+          _isLoading = false;
+        });
+      }
     }
   }
 
-  Future<void> _removePlannedMeal(Planner planner) async {
+  Future<void> _deletePlannedMeal(Planner meal) async {
     try {
-      await _plannerService.removePlannedMeal(planner); // Changed from removeFromPlan to removePlannedMeal
+      await context.read<PlannerService>().removePlannedMeal(meal);
       _loadPlannedMeals();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to remove planned meal: $e'),
+            content: Text('Failed to remove meal: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -97,101 +91,133 @@ class _PlannerScreenState extends State<PlannerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<PlannerService>(
-      builder: (context, plannerService, child) {
-        if (_isLoading) {
-          return const LoadingIndicator(message: 'Loading meal plan...');
-        }
+    if (_isLoading) {
+      return const LoadingIndicator(message: 'Loading meal plan...');
+    }
 
-        if (_error != null) {
-          return ErrorView(
-            message: _error!,
-            onRetry: _loadPlannedMeals,
-          );
-        }
+    if (_error != null) {
+      return ErrorView(
+        message: _error!,
+        onRetry: _loadPlannedMeals,
+      );
+    }
 
-        return Scaffold(
-          appBar: AppBar(
-            title: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 800),
+    return Scaffold(
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: AppBar(
+              automaticallyImplyLeading: false,
+              title: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Meal Planner'),
-                    const Spacer(),
-                    IconButton(
-                      icon: const Icon(Icons.calendar_today),
-                      onPressed: () async {
-                        final date = await showDatePicker(
-                          context: context,
-                          initialDate: _selectedDate,
-                          firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                          lastDate: DateTime.now().add(const Duration(days: 365)),
-                        );
-                        if (date != null) {
-                          setState(() => _selectedDate = date);
-                          _loadPlannedMeals();
-                        }
-                      },
+                    const Text(
+                      'Meal Planner',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.chevron_left),
+                            onPressed: () {
+                              setState(() {
+                                _selectedDate = _selectedDate.subtract(const Duration(days: 7));
+                              });
+                              _loadPlannedMeals();
+                            },
+                          ),
+                          Text(
+                            '${DateFormat('MMM d').format(_selectedDate)} - ${DateFormat('MMM d').format(_selectedDate.add(const Duration(days: 6)))}',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.chevron_right),
+                            onPressed: () {
+                              setState(() {
+                                _selectedDate = _selectedDate.add(const Duration(days: 7));
+                              });
+                              _loadPlannedMeals();
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 100),
                   ],
                 ),
               ),
+              backgroundColor: Colors.transparent,
+              elevation: 0,
             ),
-            centerTitle: false,
-            toolbarHeight: 60,
           ),
-          body: RefreshIndicator(
+        ),
+      ),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: RefreshIndicator(
             onRefresh: _loadPlannedMeals,
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 800),
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: 15, // Show 15 days
-                  itemBuilder: (context, index) {
-                    final date = DateTime(
-                      _selectedDate.year,
-                      _selectedDate.month,
-                      _selectedDate.day + (index - 7),
-                    );
-                    final meals = _plannedMeals[date] ?? [];
-                    print('Building card for date: $date, found ${meals.length} meals');
-                    return _buildDayCard(date, meals);
-                  },
-                ),
-              ),
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: 7,
+              itemBuilder: (context, index) {
+                final date = DateTime(
+                  _selectedDate.year,
+                  _selectedDate.month,
+                  _selectedDate.day + index,
+                );
+                return _buildDayCard(date);
+              },
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
-  Widget _buildDayCard(DateTime date, List<Planner> meals) {
-    final ScrollController scrollController = ScrollController();
+    Widget _buildDayCard(DateTime date) {
+    final meals = _plannedMeals[date] ?? [];
     final isToday = date.year == DateTime.now().year &&
         date.month == DateTime.now().month &&
         date.day == DateTime.now().day;
+    
+    final ScrollController scrollController = ScrollController();
 
-    void _scrollLeft() {
+    void scroll(double offset) {
       scrollController.animateTo(
-        scrollController.offset - 300,
+        scrollController.offset + offset,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
     }
 
-    void _scrollRight() {
-      scrollController.animateTo(
-        scrollController.offset + 300,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    }
+    final arrowButtonStyle = BoxDecoration(
+      color: Colors.black.withOpacity(0.3),
+      shape: BoxShape.circle,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.1),
+          spreadRadius: 1,
+          blurRadius: 3,
+          offset: const Offset(0, 1),
+        ),
+      ],
+    );
 
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
+      margin: const EdgeInsets.only(bottom: 16),
       color: isToday ? Colors.blue.shade50 : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -209,7 +235,10 @@ class _PlannerScreenState extends State<PlannerScreen> {
                 if (isToday) ...[
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.blue,
                       borderRadius: BorderRadius.circular(12),
@@ -228,158 +257,117 @@ class _PlannerScreenState extends State<PlannerScreen> {
           ),
           if (meals.isEmpty)
             const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: EdgeInsets.all(16),
               child: Text(
-                'No meals planned',
+                'No meals planned for this day',
                 style: TextStyle(
-                  fontSize: 14,
                   color: Colors.grey,
                   fontStyle: FontStyle.italic,
                 ),
               ),
             )
           else
-            SizedBox(
-              height: 120, // Increased height
-              child: Stack(
-                children: [
-                  ListView.builder(
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: SingleChildScrollView(
                     controller: scrollController,
                     scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: meals.length,
-                    itemBuilder: (context, index) {
-                      final meal = meals[index];
-                      return Container(
-                        width: 320, // Increased width
-                        margin: const EdgeInsets.only(right: 16),
-                        child: Card(
-                          elevation: 2,
-                          child: InkWell(
-                            onTap: () {
-                              showDialog(
-                                context: context,
-                                builder: (context) => RecipeDetailsDialog(recipe: meal.recipe),
-                              );
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      children: meals.map((meal) => Padding(
+                        padding: const EdgeInsets.only(right: 16),
+                        child: SizedBox(
+                          width: 300,
+                          child: MealCard(
+                            meal: meal,
+                            onDelete: () => _deletePlannedMeal(meal),
+                            onToggleComplete: (meal) async {
+                              try {
+                                await context.read<PlannerService>().toggleMealCompletion(meal);
+                                
+                                if (meal.isToday && context.mounted) {
+                                  context.read<ProfileService>().updateTodayNutrition(
+                                    meal.recipe.nutritionInfo,
+                                    !meal.isCompleted,
+                                  );
+                                }
+                                
+                                _loadPlannedMeals();
+
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        meal.isCompleted ? 'Meal marked as incomplete' : 'Meal marked as complete'
+                                      ),
+                                      backgroundColor: Colors.green,
+                                      behavior: SnackBarBehavior.floating,
+                                      margin: const EdgeInsets.all(16),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Failed to update meal status: $e'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
                             },
-                            child: Row(
-                              children: [
-                                // Recipe image
-                                SizedBox(
-                                  width: 120, // Increased width
-                                  height: 120, // Increased height
-                                  child: ClipRRect(
-                                    borderRadius: const BorderRadius.only(
-                                      topLeft: Radius.circular(4),
-                                      bottomLeft: Radius.circular(4),
-                                    ),
-                                    child: Image.network(
-                                      meal.recipe.thumbnailUrl,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return Container(
-                                          color: Colors.grey.shade200,
-                                          child: const Icon(
-                                            Icons.broken_image,
-                                            color: Colors.grey,
-                                            size: 40,
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ),
-                                // Recipe details
-                                Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          meal.recipe.title,
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          meal.recipe.category,
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.grey.shade600,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                // Delete button
-                                SizedBox(
-                                  width: 48,
-                                  child: IconButton(
-                                    icon: const Icon(
-                                      Icons.delete_outline,
-                                      size: 24,
-                                      color: Colors.red,
-                                    ),
-                                    onPressed: () => _removePlannedMeal(meal),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                              ],
-                            ),
                           ),
                         ),
-                      );
-                    },
+                      )).toList(),
+                    ),
                   ),
-                  if (meals.length > 1) ...[
-                    // Left scroll button
-                    Positioned(
-                      left: 0,
-                      top: 0,
-                      bottom: 0,
-                      child: Center(
+                ),
+                if (meals.length > 1) ...[
+                  Positioned(
+                    left: 0,
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: () => scroll(-300),
                         child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.3),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: IconButton(
-                            icon: const Icon(Icons.chevron_left, color: Colors.white),
-                            onPressed: _scrollLeft,
+                          height: 40,
+                          width: 40,
+                          decoration: arrowButtonStyle,
+                          child: const Icon(
+                            Icons.chevron_left,
+                            color: Colors.white,
                           ),
                         ),
                       ),
                     ),
-                    // Right scroll button
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      bottom: 0,
-                      child: Center(
+                  ),
+                  Positioned(
+                    right: 0,
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: () => scroll(300),
                         child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.3),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: IconButton(
-                            icon: const Icon(Icons.chevron_right, color: Colors.white),
-                            onPressed: _scrollRight,
+                          height: 40,
+                          width: 40,
+                          decoration: arrowButtonStyle,
+                          child: const Icon(
+                            Icons.chevron_right,
+                            color: Colors.white,
                           ),
                         ),
                       ),
                     ),
-                  ],
+                  ),
                 ],
-              ),
+              ],
             ),
         ],
       ),

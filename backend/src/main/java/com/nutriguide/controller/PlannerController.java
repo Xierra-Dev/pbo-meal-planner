@@ -75,6 +75,21 @@ public class PlannerController {
         }
     }
 
+    @PatchMapping("/{plannerId}/toggle-completion")
+    public ResponseEntity<?> toggleMealCompletion(
+            @PathVariable Long plannerId,
+            @RequestParam Long userId,
+            @RequestParam boolean completed) {
+        try {
+            plannerService.toggleMealCompletion(plannerId, userId, completed);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Meal completion status updated successfully", null));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>(false, "Failed to update meal completion status: " + e.getMessage(), null));
+        }
+    }
+
     private RecipeDto convertMapToRecipeDto(Map<String, Object> recipeData) {
         RecipeDto dto = new RecipeDto();
         try {
