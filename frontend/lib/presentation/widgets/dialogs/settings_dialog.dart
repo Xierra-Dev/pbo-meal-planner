@@ -5,6 +5,7 @@ import '../../../core/models/user.dart';
 import 'account_settings_dialog.dart';
 import 'edit_profile_dialog.dart';
 import 'preferences_dialog.dart';
+import 'about_dialog.dart';
 
 class SettingsDialog extends StatefulWidget {
   const SettingsDialog({super.key});
@@ -26,6 +27,9 @@ class _SettingsDialogState extends State<SettingsDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Container(
         width: 400,
         padding: const EdgeInsets.all(24),
@@ -33,11 +37,27 @@ class _SettingsDialogState extends State<SettingsDialog> {
           future: _userDataFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.deepPurple),
+                ),
+              );
             }
 
             if (snapshot.hasError) {
-              return Center(child: Text('Error: ${snapshot.error}'));
+              return Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Error: ${snapshot.error}',
+                      style: TextStyle(color: Colors.red[300]),
+                    ),
+                  ],
+                ),
+              );
             }
 
             final userData = snapshot.data ?? {};
@@ -54,11 +74,18 @@ class _SettingsDialogState extends State<SettingsDialog> {
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
+                        color: Colors.deepPurple,
                       ),
                     ),
                     IconButton(
                       icon: const Icon(Icons.close),
                       onPressed: () => Navigator.pop(context),
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.grey[100],
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -66,8 +93,9 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 _buildSettingsItem(
                   'Account',
                   userData['email'] ?? 'No email',
+                  icon: Icons.account_circle,
                   onTap: () {
-                    Navigator.pop(context); // Close settings dialog
+                    Navigator.pop(context);
                     showDialog(
                       context: context,
                       builder: (context) => const AccountSettingsDialog(),
@@ -77,13 +105,13 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 _buildSettingsItem(
                   'Profile',
                   userData['username'] ?? '',
+                  icon: Icons.person,
                   onTap: () {
-                    Navigator.pop(context); // Close settings dialog
+                    Navigator.pop(context);
                     showDialog(
                       context: context,
                       builder: (context) => EditProfileDialog(
                         onProfileUpdated: () {
-                          // Refresh settings dialog after profile update
                           showDialog(
                             context: context,
                             builder: (context) => const SettingsDialog(),
@@ -95,9 +123,10 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 ),
                 _buildSettingsItem(
                   'Preferences',
-                  '',
+                  'Personalize your experience',
+                  icon: Icons.tune,
                   onTap: () {
-                    Navigator.pop(context); // Close settings dialog
+                    Navigator.pop(context);
                     showDialog(
                       context: context,
                       builder: (context) => const PreferencesDialog(),
@@ -106,17 +135,16 @@ class _SettingsDialogState extends State<SettingsDialog> {
                   },
                 ),
                 _buildSettingsItem(
-                  'Notifications',
-                  '',
-                  onTap: () {
-                    // Handle notifications
-                  },
-                ),
-                _buildSettingsItem(
                   'About Nutriguide',
-                  '',
+                  'Learn more about us',
+                  icon: Icons.info,
+                  isLast: true,
                   onTap: () {
-                    // Handle about
+                    Navigator.pop(context);
+                    showDialog(
+                      context: context,
+                      builder: (context) => const AboutNutriguideDialog(),
+                    );
                   },
                 ),
               ],
@@ -130,22 +158,62 @@ class _SettingsDialogState extends State<SettingsDialog> {
   Widget _buildSettingsItem(
     String title,
     String subtitle, {
-    IconData? icon,
+    required IconData icon,
     required VoidCallback onTap,
     bool isLast = false,
   }) {
     return Column(
       children: [
-        ListTile(
-          title: Text(title),
-          subtitle: subtitle.isNotEmpty ? Text(subtitle) : null,
-          trailing: icon != null 
-              ? Icon(icon, color: Colors.grey)
-              : const Icon(Icons.chevron_right),
-          onTap: onTap,
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                spreadRadius: 1,
+                blurRadius: 3,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: ListTile(
+            leading: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.deepPurple.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                icon,
+                color: Colors.deepPurple,
+              ),
+            ),
+            title: Text(
+              title,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
+            ),
+            subtitle: Text(
+              subtitle,
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
+              ),
+            ),
+            trailing: const Icon(
+              Icons.chevron_right,
+              color: Colors.deepPurple,
+            ),
+            onTap: onTap,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
         ),
-        if (!isLast)
-          const Divider(height: 1),
+        if (!isLast) const SizedBox(height: 12),
       ],
     );
   }

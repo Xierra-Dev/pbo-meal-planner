@@ -4,9 +4,11 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import '../constants/api_constants.dart';
 import '../models/user.dart';
+import 'package:dio/dio.dart';
 
 class AuthService with ChangeNotifier {
   final _storage = const FlutterSecureStorage();
+  final _dio = Dio();
   String? _userId;
   String? _token;
   String? _username;
@@ -166,6 +168,37 @@ class AuthService with ChangeNotifier {
       notifyListeners();
     } catch (e) {
       print('Logout error: $e');
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteAccount(String password) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      final userId = await getCurrentUserId();
+      if (userId == null) throw Exception('User ID not found');
+
+      final response = await http.delete(
+        Uri.parse('${ApiConstants.baseUrl}/users/$userId'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({'password': password}),
+      );
+
+      if (response.statusCode == 200) {
+        await logout(); // Clear local auth data
+      } else {
+        final error = json.decode(response.body);
+        throw Exception(error['message'] ?? 'Failed to delete account');
+      }
+    } catch (e) {
+      print('Delete account error: $e');
       rethrow;
     } finally {
       _isLoading = false;

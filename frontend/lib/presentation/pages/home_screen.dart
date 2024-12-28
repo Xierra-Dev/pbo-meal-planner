@@ -40,7 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             // Logo dan Nama Aplikasi
             const Text(
-              'Nutriguide',
+              'NutriGuide',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             
