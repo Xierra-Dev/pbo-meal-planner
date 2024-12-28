@@ -4,6 +4,7 @@ import '../../../core/services/auth_service.dart';
 import '../../../core/models/user.dart';
 import 'account_settings_dialog.dart';
 import 'edit_profile_dialog.dart';
+import 'preferences_dialog.dart';
 
 class SettingsDialog extends StatefulWidget {
   const SettingsDialog({super.key});
@@ -96,7 +97,12 @@ class _SettingsDialogState extends State<SettingsDialog> {
                   'Preferences',
                   '',
                   onTap: () {
-                    // Handle preferences
+                    Navigator.pop(context); // Close settings dialog
+                    showDialog(
+                      context: context,
+                      builder: (context) => const PreferencesDialog(),
+                      barrierDismissible: true,
+                    );
                   },
                 ),
                 _buildSettingsItem(
