@@ -3,6 +3,7 @@ import '../../core/models/recipe.dart';
 import '../../core/services/saved_recipe_service.dart';
 import 'recipe_card.dart';
 import 'package:provider/provider.dart';
+import 'dialogs/recipe_details_dialog.dart';
 
 class PopupRecipeGrid extends StatelessWidget {
   final String title;
@@ -17,16 +18,15 @@ class PopupRecipeGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
-        width: MediaQuery.of(context).size.width * 0.8,
-        height: MediaQuery.of(context).size.height * 0.8,
+        width: 800,
         padding: const EdgeInsets.all(24),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   title,
@@ -35,7 +35,6 @@ class PopupRecipeGrid extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.close),
                   onPressed: () => Navigator.pop(context),
@@ -43,8 +42,12 @@ class PopupRecipeGrid extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 24),
-            Expanded(
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.6,
+              ),
               child: GridView.builder(
+                shrinkWrap: true,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
                   childAspectRatio: 0.75,
@@ -57,18 +60,88 @@ class PopupRecipeGrid extends StatelessWidget {
                     recipe: recipes[index],
                     titleFontSize: 16,
                     isSaved: context.watch<SavedRecipeService>().isRecipeSaved(recipes[index].id),
+                    onTap: (recipe) {
+                      Navigator.pop(context); // Tutup popup grid
+                      showDialog(
+                        context: context,
+                        builder: (context) => RecipeDetailsDialog(
+                          recipe: recipe,
+                          isSaved: context.read<SavedRecipeService>().isRecipeSaved(recipe.id),
+                          onSaveRecipe: (recipe, isSaved) async {
+                            final savedRecipeService = context.read<SavedRecipeService>();
+                            try {
+                              if (isSaved) {
+                                await savedRecipeService.saveRecipe(recipe);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Recipe saved successfully'),
+                                      backgroundColor: Colors.green,
+                                      duration: Duration(seconds: 2),
+                                    ),
+                                  );
+                                }
+                              } else {
+                                await savedRecipeService.unsaveRecipe(recipe.id);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Recipe removed from saved'),
+                                      backgroundColor: Colors.red,
+                                      duration: Duration(seconds: 2),
+                                    ),
+                                  );
+                                }
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Failed to ${isSaved ? 'save' : 'unsave'} recipe'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                        ),
+                      );
+                    },
                     onSaveRecipe: (recipe, isSaved) async {
                       final savedRecipeService = context.read<SavedRecipeService>();
                       try {
-                        if (isSaved) {
+                        if (!isSaved) {
                           await savedRecipeService.saveRecipe(recipe);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Recipe saved successfully'),
+                                backgroundColor: Colors.green,
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          }
                         } else {
                           await savedRecipeService.unsaveRecipe(recipe.id);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Recipe removed from saved'),
+                                backgroundColor: Colors.red,
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          }
                         }
                       } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Failed to ${isSaved ? 'save' : 'unsave'} recipe')),
-                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Failed to ${!isSaved ? 'save' : 'unsave'} recipe'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
                       }
                     },
                   );
