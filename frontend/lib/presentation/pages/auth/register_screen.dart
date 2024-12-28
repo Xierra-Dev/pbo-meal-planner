@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../../../core/services/auth_service.dart';
 import 'login_screen.dart';
+import '../../widgets/requirement_item.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -18,6 +19,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _has8Characters = false;
+  bool _hasNumber = false;
+  bool _hasSymbol = false;
 
   final AuthService _authService = AuthService();
 
@@ -50,6 +54,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _checkPasswordRequirements(String password) {
+    setState(() {
+      _has8Characters = password.length >= 8;
+      _hasNumber = password.contains(RegExp(r'[0-9]'));
+      _hasSymbol = password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
+    });
   }
 
   @override
@@ -177,10 +189,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                             const SizedBox(height: 16),
 
-                            // Password Field
+
                             TextFormField(
                               controller: _passwordController,
                               obscureText: _obscurePassword,
+                              onChanged: _checkPasswordRequirements,
                               decoration: InputDecoration(
                                 labelText: 'Password',
                                 hintText: 'Create a strong password',
@@ -205,11 +218,49 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 if (value == null || value.isEmpty) {
                                   return 'Please enter a password';
                                 }
-                                if (value.length < 6) {
-                                  return 'Password must be at least 6 characters';
+                                if (!_has8Characters || !_hasNumber || !_hasSymbol) {
+                                  return 'Please meet all password requirements';
                                 }
                                 return null;
                               },
+                            ),
+                            const SizedBox(height: 8),
+                            
+                            // Password Requirements
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(255, 255, 255, 255),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Password Requirements:',
+                                    style: TextStyle(
+                                      color: const Color.fromARGB(255, 0, 0, 0),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  RequirementItem(
+                                    text: 'At least 8 characters',
+                                    isMet: _has8Characters,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  RequirementItem(
+                                    text: 'Contains a number',
+                                    isMet: _hasNumber,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  RequirementItem(
+                                    text: 'Contains a symbol',
+                                    isMet: _hasSymbol,
+                                  ),
+                                ],
+                              ),
                             ),
                             const SizedBox(height: 16),
 
