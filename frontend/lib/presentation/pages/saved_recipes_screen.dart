@@ -35,6 +35,7 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
           child: Container(
             constraints: const BoxConstraints(maxWidth: 800), // Sama dengan konten
             child: AppBar(
+              automaticallyImplyLeading: false,
               title: const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 24.0), // Sama dengan konten
                 child: Text('Saved Recipes'),

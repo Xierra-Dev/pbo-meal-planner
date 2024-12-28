@@ -9,6 +9,7 @@ class AuthService with ChangeNotifier {
   String? _userId;
   String? _token;
   String? _username;
+  String? _email;
   bool _isInitialized = false;
   bool _isLoading = false;
 
@@ -32,6 +33,7 @@ class AuthService with ChangeNotifier {
       _userId = await _storage.read(key: 'user_id');
       _token = await _storage.read(key: 'auth_token');
       _username = await _storage.read(key: 'username');
+      _email = await _storage.read(key: 'email');
       
       print('Auth initialized - userId: $_userId, username: $_username');
       
@@ -64,6 +66,11 @@ class AuthService with ChangeNotifier {
     return _username;
   }
 
+  Future<String?> getEmail() async {
+    await isInitialized;
+    return _email;
+  }
+
   Future<void> login(String email, String password) async {
     try {
       _isLoading = true;
@@ -85,11 +92,13 @@ class AuthService with ChangeNotifier {
           _userId = data['data']['userId'].toString();
           _token = data['data']['token'] ?? _userId;
           _username = data['data']['username'];
+          _email = data['data']['email'];
           
           // Save user data
           await _storage.write(key: 'user_id', value: _userId);
           await _storage.write(key: 'auth_token', value: _token);
           await _storage.write(key: 'username', value: _username);
+          await _storage.write(key: 'email', value: _email);
           
           print('Login successful - userId: $_userId, username: $_username');
           
@@ -148,6 +157,7 @@ class AuthService with ChangeNotifier {
       _userId = null;
       _token = null;
       _username = null;
+      _email = null;
       _isInitialized = false;
       
       print('Logout successful');
@@ -183,6 +193,37 @@ class AuthService with ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> updateProfile(Map<String, dynamic> profileData) async {
+    final userId = await getCurrentUserId();
+    final currentEmail = await getEmail(); // Tambahkan method untuk get email
+    
+    // Tambahkan email ke profileData
+    profileData['email'] = currentEmail;
+    
+    final response = await http.put(
+      Uri.parse('${ApiConstants.baseUrl}/users/$userId/profile'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode(profileData),
+    );
+    
+    if (response.statusCode != 200) {
+      throw Exception('Failed to update profile');
+    }
+  }
+
+  Future<Map<String, dynamic>> getUserProfile(String userId) async {
+    final response = await http.get(
+      Uri.parse('${ApiConstants.baseUrl}/users/$userId/profile'),
+      headers: {'Content-Type': 'application/json'},
+    );
+    
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Failed to load profile');
     }
   }
 }

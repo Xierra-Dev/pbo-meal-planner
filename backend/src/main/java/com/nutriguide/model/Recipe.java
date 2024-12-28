@@ -1,6 +1,8 @@
 package com.nutriguide.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
@@ -100,27 +102,51 @@ public class Recipe {
         planner.setRecipe(null);
     }
 
-    // Convert List<String> to comma-separated String
-    public void setIngredientsList(List<String> ingredientsList) {
-        this.ingredients = ingredientsList != null ? String.join(",", ingredientsList) : "";
-    }
-
-    // Convert comma-separated String to List<String>
+    // Convert JSON string to List<String>
     public List<String> getIngredientsList() {
-        return ingredients != null && !ingredients.isEmpty() 
-            ? List.of(ingredients.split(",")) 
-            : new ArrayList<>();
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            if (ingredients != null && !ingredients.isEmpty()) {
+                return mapper.readValue(ingredients, new TypeReference<List<String>>() {});
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new ArrayList<>();
     }
 
-    // Convert List<String> to comma-separated String
-    public void setMeasuresList(List<String> measuresList) {
-        this.measures = measuresList != null ? String.join(",", measuresList) : "";
+    // Convert List<String> to JSON string
+    public void setIngredientsList(List<String> ingredientsList) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            this.ingredients = mapper.writeValueAsString(ingredientsList);
+        } catch (Exception e) {
+            e.printStackTrace();
+            this.ingredients = "[]";
+        }
     }
 
-    // Convert comma-separated String to List<String>
+    // Convert JSON string to List<String>
     public List<String> getMeasuresList() {
-        return measures != null && !measures.isEmpty() 
-            ? List.of(measures.split(",")) 
-            : new ArrayList<>();
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            if (measures != null && !measures.isEmpty()) {
+                return mapper.readValue(measures, new TypeReference<List<String>>() {});
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new ArrayList<>();
+    }
+
+    // Convert List<String> to JSON string
+    public void setMeasuresList(List<String> measuresList) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            this.measures = mapper.writeValueAsString(measuresList);
+        } catch (Exception e) {
+            e.printStackTrace();
+            this.measures = "[]";
+        }
     }
 }
