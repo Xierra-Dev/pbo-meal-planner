@@ -58,7 +58,7 @@ class RecipeCard extends StatelessWidget {
                           );
                         },
                       ),
-                      // Area Label - Top Right
+                      // Area Label - Top Left
                       Positioned(
                         top: 8,
                         left: 8,
