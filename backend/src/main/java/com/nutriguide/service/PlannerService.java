@@ -144,6 +144,10 @@ public class PlannerService {
         recipeDto.setCategory(recipe.getCategory());
         recipeDto.setInstructions(recipe.getInstructions());
         
+        // Tambahkan konversi ingredients dan measures
+        recipeDto.setIngredients(recipe.getIngredientsList());
+        recipeDto.setMeasures(recipe.getMeasuresList());
+        
         dto.setRecipe(recipeDto);
         return dto;
     }

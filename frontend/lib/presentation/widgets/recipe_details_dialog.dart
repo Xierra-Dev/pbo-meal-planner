@@ -214,17 +214,25 @@ class RecipeDetailsDialog extends StatelessWidget {
                     ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      itemCount: recipe.ingredients.length,
+                      itemCount: recipe.ingredients?.length ?? 0, // Tambahkan null check
                       itemBuilder: (context, index) {
+                        // Pastikan ingredients dan measures tidak null
+                        final ingredient = recipe.ingredients?[index] ?? '';
+                        final measure = index < (recipe.measures?.length ?? 0) 
+                            ? recipe.measures![index] 
+                            : '';
+
+                        if (ingredient.isEmpty) return const SizedBox.shrink(); // Skip jika kosong
+
                         return Padding(
                           padding: const EdgeInsets.symmetric(vertical: 4),
                           child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('• ', style: TextStyle(fontSize: 16)),
+                              const Icon(Icons.check_circle_outline, size: 20),
+                              const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  '${recipe.measures[index]} ${recipe.ingredients[index]}',
+                                  '$measure $ingredient'.trim(),
                                   style: const TextStyle(fontSize: 16),
                                 ),
                               ),
