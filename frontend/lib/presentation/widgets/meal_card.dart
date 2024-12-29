@@ -104,12 +104,8 @@ class MealCard extends StatelessWidget {
                           child: Padding(
                             padding: const EdgeInsets.all(8.0),
                             child: Icon(
-                              meal.isCompleted
-                                  ? Icons.check_circle
-                                  : Icons.check_circle_outline,
-                              color: meal.isCompleted
-                                  ? Colors.green
-                                  : Colors.grey,
+                              meal.isCompleted ? Icons.check_circle : Icons.check_circle_outline,
+                              color: meal.isCompleted ? Colors.green[600] : Colors.grey[400],
                               size: 24,
                             ),
                           ),
@@ -130,14 +126,31 @@ class MealCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: Text(
-                          meal.recipe.title,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              meal.recipe.title,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (meal.isCompleted)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(
+                                  'Completed',
+                                  style: TextStyle(
+                                    color: Colors.green[700],
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                       if (showActions && onDelete != null)
@@ -165,8 +178,6 @@ class MealCard extends StatelessWidget {
                           fontSize: 14,
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      
                     ],
                   ),
                 ],

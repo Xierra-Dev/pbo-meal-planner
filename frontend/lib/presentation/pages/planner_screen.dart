@@ -187,7 +187,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
     );
   }
 
-    Widget _buildDayCard(DateTime date) {
+  Widget _buildDayCard(DateTime date) {
     final meals = _plannedMeals[date] ?? [];
     final isToday = date.year == DateTime.now().year &&
         date.month == DateTime.now().month &&
@@ -219,6 +219,9 @@ class _PlannerScreenState extends State<PlannerScreen> {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       color: isToday ? Colors.blue.shade50 : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -248,6 +251,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 12,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
@@ -286,13 +290,28 @@ class _PlannerScreenState extends State<PlannerScreen> {
                             onDelete: () => _deletePlannedMeal(meal),
                             onToggleComplete: (meal) async {
                               try {
-                                await context.read<PlannerService>().toggleMealCompletion(meal);
-                                
-                                if (meal.isToday && context.mounted) {
-                                  context.read<ProfileService>().updateTodayNutrition(
-                                    meal.recipe.nutritionInfo,
-                                    !meal.isCompleted,
-                                  );
+                                // Jika meal sudah completed, kita akan un-complete
+                                if (meal.isCompleted) {
+                                  await context.read<PlannerService>().toggleMealCompletion(meal);
+                                  
+                                  if (meal.isToday && context.mounted) {
+                                    // Kurangi nutrisi karena meal di-uncomplete
+                                    context.read<ProfileService>().updateTodayNutrition(
+                                      meal.recipe.nutritionInfo,
+                                      false, // false untuk mengurangi nutrisi
+                                    );
+                                  }
+                                } else {
+                                  // Jika meal belum completed
+                                  await context.read<PlannerService>().toggleMealCompletion(meal);
+                                  
+                                  if (meal.isToday && context.mounted) {
+                                    // Tambah nutrisi karena meal completed
+                                    context.read<ProfileService>().updateTodayNutrition(
+                                      meal.recipe.nutritionInfo,
+                                      true, // true untuk menambah nutrisi
+                                    );
+                                  }
                                 }
                                 
                                 _loadPlannedMeals();
@@ -318,6 +337,11 @@ class _PlannerScreenState extends State<PlannerScreen> {
                                     SnackBar(
                                       content: Text('Failed to update meal status: $e'),
                                       backgroundColor: Colors.red,
+                                      behavior: SnackBarBehavior.floating,
+                                      margin: const EdgeInsets.all(16),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
                                     ),
                                   );
                                 }

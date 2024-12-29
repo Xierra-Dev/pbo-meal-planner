@@ -74,7 +74,7 @@ class AuthService with ChangeNotifier {
     return _email;
   }
 
-  Future<void> login(String email, String password) async {
+    Future<void> login(String email, String password) async {
     try {
       _isLoading = true;
       notifyListeners();
@@ -104,6 +104,9 @@ class AuthService with ChangeNotifier {
           await _storage.write(key: 'email', value: _email);
           
           print('Login successful - userId: $_userId, username: $_username');
+
+          _isInitialized = true;
+          await initializeAuth(); // Reinitialize auth state
           
           notifyListeners();
         } else {

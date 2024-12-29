@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../../../core/services/auth_service.dart';
 import 'package:nutriguide/presentation/pages/home_screen.dart';
 import 'register_screen.dart';
+import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -25,12 +26,19 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await _authService.login(
+      final authService = Provider.of<AuthService>(context, listen: false);
+      await authService.login(
         _emailController.text.trim(),
         _passwordController.text,
       );
 
-      if (mounted) {
+      // Tunggu auth check selesai
+      await Future.delayed(const Duration(milliseconds: 100));
+      
+      // Cek status login
+      final isLoggedIn = await authService.isLoggedIn();
+      
+      if (mounted && isLoggedIn) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const HomeScreen()),
         );
@@ -38,7 +46,15 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
         );
       }
     } finally {
