@@ -4,6 +4,7 @@ import '../../core/services/auth_service.dart';
 import '../../core/services/saved_recipe_service.dart';
 import 'auth/login_screen.dart';
 import 'home_screen.dart';
+import 'landing_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -50,7 +51,7 @@ class _SplashScreenState extends State<SplashScreen> {
       // Navigate to appropriate screen
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => isLoggedIn ? const HomeScreen() : const LoginScreen(),
+          builder: (_) => isLoggedIn ? const HomeScreen() : const LandingScreen(),
         ),
       );
     } catch (e) {
