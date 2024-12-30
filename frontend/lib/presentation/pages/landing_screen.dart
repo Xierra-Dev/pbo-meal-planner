@@ -15,6 +15,7 @@ class _LandingScreenState extends State<LandingScreen> {
   final ScrollController _scrollController = ScrollController();
   bool _showBackToTopButton = false;
   String _activeSection = 'home';
+  bool _isLogoHovered = false;
 
   final Map<String, double> _sectionOffsets = {
     'home': 0,
@@ -179,45 +180,155 @@ class _LandingScreenState extends State<LandingScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Text(
-                              'Your Personal\nNutrition Guide',
-                              style: TextStyle(
-                                fontSize: 56,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                height: 1.2,
+                            // Logo dengan animasi dan hover effect
+                            MouseRegion(
+                              onEnter: (_) => setState(() => _isLogoHovered = true),
+                              onExit: (_) => setState(() => _isLogoHovered = false),
+                              child: TweenAnimationBuilder(
+                                duration: const Duration(milliseconds: 1200),
+                                tween: Tween<double>(begin: 0, end: 1),
+                                builder: (context, double value, child) {
+                                  return Transform.scale(
+                                    scale: value * (_isLogoHovered ? 1.1 : 1.0),
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 200),
+                                      padding: const EdgeInsets.all(20),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(_isLogoHovered ? 0.15 : 0.1),
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.white.withOpacity(_isLogoHovered ? 0.3 : 0.2),
+                                            blurRadius: 20 * value,
+                                            spreadRadius: 5 * value,
+                                          ),
+                                        ],
+                                      ),
+                                      child: Image.asset(
+                                        'assets/images/logo.png',
+                                        height: 120,
+                                        width: 120,
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 24),
-                            const Text(
-                              'Discover healthy recipes, plan your meals,\nand track your nutrition journey',
-                              style: TextStyle(
-                                fontSize: 24,
-                                color: Colors.white,
-                                height: 1.5,
-                              ),
-                              textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 40),
-                            ElevatedButton(
-                              onPressed: () => NavigationHelper.navigateToPage(
-                                context,
-                                const RegisterScreen(),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: Colors.blue[900],
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 40,
-                                  vertical: 20,
-                                ),
-                                textStyle: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
+
+                            // Headline dengan animasi
+                            AnimatedBuilder(
+                              animation: Tween(begin: 0.0, end: 1.0).animate(
+                                CurvedAnimation(
+                                  parent: ModalRoute.of(context)!.animation!,
+                                  curve: const Interval(0.2, 1.0, curve: Curves.easeOut),
                                 ),
                               ),
-                              child: const Text('Start Your Journey'),
+                              builder: (context, child) {
+                                return TweenAnimationBuilder(
+                                  duration: const Duration(milliseconds: 1000),
+                                  tween: Tween<double>(begin: 0, end: 1),
+                                  builder: (context, double value, child) {
+                                    return Opacity(
+                                      opacity: value,
+                                      child: Transform.translate(
+                                        offset: Offset(0, 30 * (1 - value)),
+                                        child: child,
+                                      ),
+                                    );
+                                  },
+                                  child: const Text(
+                                    'Your Personal\nNutrition Guide',
+                                    style: TextStyle(
+                                      fontSize: 56,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                      height: 1.2,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Subheadline dengan animasi
+                            AnimatedBuilder(
+                              animation: Tween(begin: 0.0, end: 1.0).animate(
+                                CurvedAnimation(
+                                  parent: ModalRoute.of(context)!.animation!,
+                                  curve: const Interval(0.4, 1.0, curve: Curves.easeOut),
+                                ),
+                              ),
+                              builder: (context, child) {
+                                return TweenAnimationBuilder(
+                                  duration: const Duration(milliseconds: 1000),
+                                  tween: Tween<double>(begin: 0, end: 1),
+                                  builder: (context, double value, child) {
+                                    return Opacity(
+                                      opacity: value,
+                                      child: Transform.translate(
+                                        offset: Offset(0, 30 * (1 - value)),
+                                        child: child,
+                                      ),
+                                    );
+                                  },
+                                  child: const Text(
+                                    'Discover healthy recipes, plan your meals,\nand track your nutrition journey',
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      color: Colors.white,
+                                      height: 1.5,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 40),
+
+                            // Button dengan animasi
+                            AnimatedBuilder(
+                              animation: Tween(begin: 0.0, end: 1.0).animate(
+                                CurvedAnimation(
+                                  parent: ModalRoute.of(context)!.animation!,
+                                  curve: const Interval(0.6, 1.0, curve: Curves.easeOut),
+                                ),
+                              ),
+                              builder: (context, child) {
+                                return TweenAnimationBuilder(
+                                  duration: const Duration(milliseconds: 1000),
+                                  tween: Tween<double>(begin: 0, end: 1),
+                                  builder: (context, double value, child) {
+                                    return Opacity(
+                                      opacity: value,
+                                      child: Transform.translate(
+                                        offset: Offset(0, 30 * (1 - value)),
+                                        child: child,
+                                      ),
+                                    );
+                                  },
+                                  child: ElevatedButton(
+                                    onPressed: () => NavigationHelper.navigateToPage(
+                                      context,
+                                      const RegisterScreen(),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      foregroundColor: Colors.blue[900],
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 40,
+                                        vertical: 20,
+                                      ),
+                                      textStyle: const TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    child: const Text('Start Your Journey'),
+                                  ),
+                                );
+                              },
                             ),
                           ],
                         ),
@@ -288,9 +399,9 @@ class _LandingScreenState extends State<LandingScreen> {
                       ),
                       const SizedBox(height: 24),
                       ElevatedButton(
-                        onPressed: () => Navigator.push(
+                        onPressed: () => NavigationHelper.navigateToPage(
                           context,
-                          MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                          const RegisterScreen(),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
@@ -301,7 +412,7 @@ class _LandingScreenState extends State<LandingScreen> {
                           ),
                         ),
                         child: const Text(
-                          '@NutriGuide Team',
+                          'Get Started',
                           style: TextStyle(fontSize: 18),
                         ),
                       ),

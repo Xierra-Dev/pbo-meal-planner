@@ -5,6 +5,7 @@ import 'register_screen.dart';
 import 'package:provider/provider.dart';
 import 'dart:ui';
 import 'package:nutriguide/utils/navigation_helper.dart';
+import 'package:nutriguide/presentation/pages/landing_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -98,6 +99,77 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
           
+          // Di dalam Stack
+          Positioned(
+            top: 24,
+            left: 24,
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: TweenAnimationBuilder(
+                duration: const Duration(milliseconds: 300),
+                tween: Tween<double>(begin: 0, end: 1),
+                builder: (context, double value, child) {
+                  return Transform.scale(
+                    scale: value,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.2),
+                          width: 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 8,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(builder: (_) => const LandingScreen()),
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          hoverColor: Colors.white.withOpacity(0.1),
+                          splashColor: Colors.white.withOpacity(0.2),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.arrow_back_ios_new,
+                                  color: Colors.white.withOpacity(0.9),
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Back',
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.9),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+
           // Content
           Center(
             child: SingleChildScrollView(
