@@ -33,6 +33,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authService = Provider.of<AuthService>(context);
+    
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(kToolbarHeight),
@@ -75,73 +77,211 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
 
                     // Profile Menu with Arrow
-                    PopupMenuButton(
-                      offset: const Offset(0, 40),
-                      child: Row(
-                        children: [
-                          const CircleAvatar(
-                            radius: 15,
-                            backgroundImage: AssetImage('assets/images/profile.jpg'),
-                          ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            Icons.arrow_drop_down,
-                            color: Colors.grey[700],
-                          ),
-                        ],
+                    PopupMenuButton<String>(
+                      offset: const Offset(0, 8),
+                      position: PopupMenuPosition.under,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      itemBuilder: (BuildContext context) => [
-                        PopupMenuItem(
-                          child: Row(
-                            children: [
-                              const Icon(Icons.person_outline),
-                              const SizedBox(width: 8),
-                              const Text('Profile'),
-                            ],
+                      elevation: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(color: Colors.grey[200]!),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.1),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            const CircleAvatar(
+                              radius: 16,
+                              backgroundImage: AssetImage('assets/images/profile.jpg'),
+                            ),
+                            const SizedBox(width: 8),
+                            FutureBuilder<String?>(
+                              future: authService.getUsername(),
+                              builder: (context, snapshot) => Text(
+                                snapshot.data ?? 'Guest',
+                                style: TextStyle(
+                                  color: Colors.grey[800],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.arrow_drop_down,
+                              color: Colors.grey[600],
+                            ),
+                          ],
+                        ),
+                      ),
+                      itemBuilder: (context) => <PopupMenuEntry<String>>[
+                        // Profile Item
+                        PopupMenuItem<String>(
+                          value: 'profile',
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue[50],
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    Icons.person_outline,
+                                    color: Colors.blue[700],
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Profile',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'View your profile',
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
-                          onTap: () {
+                        ),
+                        // Settings Item
+                        PopupMenuItem<String>(
+                          value: 'settings',
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.purple[50],
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    Icons.settings_outlined,
+                                    color: Colors.purple[700],
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Settings',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Customize your preferences',
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        // Divider
+                        const PopupMenuDivider(),
+                        // Logout Item
+                        PopupMenuItem<String>(
+                          value: 'logout',
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red[50],
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    Icons.logout,
+                                    color: Colors.red[700],
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Logout',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 15,
+                                        color: Colors.red,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Sign out from your account',
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                      onSelected: (String value) {
+                        switch (value) {
+                          case 'profile':
                             Navigator.push(
                               context,
                               MaterialPageRoute(builder: (_) => const ProfileScreen()),
                             );
-                          },
-                        ),
-                        PopupMenuItem(
-                          child: Row(
-                            children: [
-                              const Icon(Icons.settings_outlined),
-                              const SizedBox(width: 8),
-                              const Text('Settings'),
-                            ],
-                          ),
-                          onTap: () {
-                            Future.delayed(const Duration(milliseconds: 10), () {
-                              showDialog(
-                                context: context,
-                                builder: (context) => const SettingsDialog(),
-                              );
-                            });
-                          },
-                        ),
-                        PopupMenuItem(
-                          child: Row(
-                            children: [
-                              const Icon(Icons.logout, color: Colors.red),
-                              const SizedBox(width: 8),
-                              const Text('Logout', style: TextStyle(color: Colors.red)),
-                            ],
-                          ),
-                          onTap: () async {
-                            final authService = Provider.of<AuthService>(context, listen: false);
-                            await authService.logout();
-                            if (mounted) {
-                              Navigator.of(context).pushReplacement(
-                                MaterialPageRoute(builder: (_) => const LoginScreen()),
-                              );
-                            }
-                          },
-                        ),
-                      ],
+                            break;
+                          case 'settings':
+                            showDialog(
+                              context: context,
+                              builder: (context) => const SettingsDialog(),
+                            );
+                            break;
+                          case 'logout':
+                            authService.logout();
+                            Navigator.of(context).pushReplacement(
+                              MaterialPageRoute(builder: (_) => const LoginScreen()),
+                            );
+                            break;
+                        }
+                      },
                     ),
                   ],
                 ),
@@ -152,11 +292,18 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: _screens[_selectedIndex],
-        ),
+      body: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+
+
+          // Main Content Area
+          Expanded(
+            child: _screens[_selectedIndex],
+          ),
+
+
+        ],
       ),
     );
   }
