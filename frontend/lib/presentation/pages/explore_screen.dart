@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'dart:async';
 import '../../core/models/recipe.dart';
 import '../../core/services/recipe_service.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/services/saved_recipe_service.dart';
 import '../widgets/recipe_card.dart';
 import '../widgets/dialogs/recipe_details_dialog.dart';
@@ -22,7 +23,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   bool _isLoading = false;
   Timer? _debounce;
   String? _selectedIngredient;
-
+  int? _userId;
   final ScrollController _ingredientScrollController = ScrollController();
 
   // Daftar bahan populer dengan icon
@@ -97,6 +98,21 @@ class _ExploreScreenState extends State<ExploreScreen> {
     _ingredientScrollController.dispose(); // Tambahkan ini
     _debounce?.cancel();
     super.dispose();
+    _loadUserId();
+  }
+
+  Future<void> _loadUserId() async {
+    try {
+      final userIdStr = await context.read<AuthService>().getCurrentUserId();
+      print('Received userId from AuthService: $userIdStr (type: ${userIdStr?.runtimeType})');
+      if (mounted) {
+        setState(() {
+          _userId = userIdStr != null ? int.parse(userIdStr.toString()) : null;
+        });
+      }
+    } catch (e) {
+      print('Error loading userId: $e');
+    }
   }
 
   Future<void> _loadRecipes() async {

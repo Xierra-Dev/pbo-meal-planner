@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../core/models/planner.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/services/planner_service.dart';
 import '../../core/services/profile_service.dart';
 import '../widgets/chat_floating_button.dart';
@@ -19,14 +20,29 @@ class PlannerScreen extends StatefulWidget {
 class _PlannerScreenState extends State<PlannerScreen> {
   DateTime _selectedDate = DateTime.now();
   bool _isLoading = true;
+  int? _userId;
   String? _error;
-  String? _userId;
   Map<DateTime, List<Planner>> _plannedMeals = {};
 
   @override
   void initState() {
     super.initState();
     _loadPlannedMeals();
+    _loadUserId();
+  }
+
+  Future<void> _loadUserId() async {
+    try {
+      final userIdStr = await context.read<AuthService>().getCurrentUserId();
+      print('Received userId from AuthService: $userIdStr (type: ${userIdStr?.runtimeType})');
+      if (mounted) {
+        setState(() {
+          _userId = userIdStr != null ? int.parse(userIdStr.toString()) : null;
+        });
+      }
+    } catch (e) {
+      print('Error loading userId: $e');
+    }
   }
 
   Future<void> _loadPlannedMeals() async {
@@ -187,16 +203,17 @@ class _PlannerScreenState extends State<PlannerScreen> {
         ),
       ),
       floatingActionButton: Theme(
-        data: Theme.of(context).copyWith(
-          floatingActionButtonTheme: const FloatingActionButtonThemeData(
-            backgroundColor: Colors.purple, // Sesuaikan dengan warna tema aplikasi
-            foregroundColor: Colors.white,
-          ),
-        ),
-        child: ChatFloatingButton(userId: _userId ?? ''),
-      ),  
-      // Pastikan posisi floating button tetap di kanan bawah
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+  data: Theme.of(context).copyWith(
+    floatingActionButtonTheme: const FloatingActionButtonThemeData(
+      backgroundColor: Colors.purple,
+      foregroundColor: Colors.white,
+    ),
+  ),
+  child: _userId != null
+      ? ChatFloatingButton(userId: _userId!)
+      : const SizedBox(), // Atau tampilkan widget pengganti jika userId null
+),
+
     );
   }
 
