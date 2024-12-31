@@ -40,7 +40,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       await _authService.register(
         _usernameController.text.trim(),
         _emailController.text.trim(),
-        _passwordController.text,
+        _passwordController.text.trim(),
+        _confirmPasswordController.text.trim(),
       );
 
       if (mounted) {

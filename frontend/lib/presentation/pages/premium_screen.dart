@@ -24,7 +24,7 @@ class PremiumScreen extends StatefulWidget {
 
 class _PremiumScreenState extends State<PremiumScreen> {
   int _selectedIndex = 0;
-  String? _userId;
+  int? _userId;
 
   final List<Widget> _screens = [
     const HomeContent(),
@@ -307,15 +307,22 @@ class _PremiumScreenState extends State<PremiumScreen> {
           ),
         ],
       ),
-      floatingActionButton: Theme(
-        data: Theme.of(context).copyWith(
-          floatingActionButtonTheme: const FloatingActionButtonThemeData(
-            backgroundColor:
-                Colors.purple, // Sesuaikan dengan warna tema aplikasi
-            foregroundColor: Colors.white,
-          ),
-        ),
-        child: ChatFloatingButton(userId: _userId ?? ''),
+      floatingActionButton: Builder(
+        builder: (context) {
+          if (_userId == null) {
+            print('UserId is null, not showing chat button');
+            return const SizedBox.shrink();
+          }
+          return Theme(
+            data: Theme.of(context).copyWith(
+              floatingActionButtonTheme: const FloatingActionButtonThemeData(
+                backgroundColor: Colors.purple,
+                foregroundColor: Colors.white,
+              ),
+            ),
+            child: ChatFloatingButton(userId: _userId!),
+          );
+        },
       ),
       // Pastikan posisi floating button tetap di kanan bawah
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
