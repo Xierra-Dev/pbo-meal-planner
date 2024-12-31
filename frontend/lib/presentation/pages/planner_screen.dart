@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../core/models/planner.dart';
 import '../../core/services/planner_service.dart';
 import '../../core/services/profile_service.dart';
+import '../widgets/chat_floating_button.dart';
 import '../widgets/meal_card.dart';
 import '../widgets/loading_indicator.dart';
 import '../widgets/error_view.dart';
@@ -19,6 +20,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
   DateTime _selectedDate = DateTime.now();
   bool _isLoading = true;
   String? _error;
+  String? _userId;
   Map<DateTime, List<Planner>> _plannedMeals = {};
 
   @override
@@ -184,6 +186,17 @@ class _PlannerScreenState extends State<PlannerScreen> {
           ),
         ),
       ),
+      floatingActionButton: Theme(
+        data: Theme.of(context).copyWith(
+          floatingActionButtonTheme: const FloatingActionButtonThemeData(
+            backgroundColor: Colors.purple, // Sesuaikan dengan warna tema aplikasi
+            foregroundColor: Colors.white,
+          ),
+        ),
+        child: ChatFloatingButton(userId: _userId ?? ''),
+      ),  
+      // Pastikan posisi floating button tetap di kanan bawah
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 
@@ -395,6 +408,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
             ),
         ],
       ),
+      
     );
   }
 }

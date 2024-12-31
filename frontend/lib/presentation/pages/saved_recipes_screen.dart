@@ -22,6 +22,7 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
   void initState() {
     super.initState();
     _refreshSavedRecipes();
+    _loadUserId();
   }
 
   void _refreshSavedRecipes() {

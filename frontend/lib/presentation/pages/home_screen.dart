@@ -4,6 +4,7 @@ import '../../core/models/recipe.dart';
 import '../../core/services/recipe_service.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/saved_recipe_service.dart';
+import '../widgets/chat_floating_button.dart';
 import 'explore_screen.dart';
 import 'planner_screen.dart';
 import 'saved_recipes_screen.dart';
@@ -23,6 +24,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  String? _userId;
 
   final List<Widget> _screens = [
     const HomeContent(),
@@ -306,6 +308,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
         ],
       ),
+      floatingActionButton: Theme(
+        data: Theme.of(context).copyWith(
+          floatingActionButtonTheme: const FloatingActionButtonThemeData(
+            backgroundColor: Colors.purple, // Sesuaikan dengan warna tema aplikasi
+            foregroundColor: Colors.white,
+          ),
+        ),
+        child: ChatFloatingButton(userId: _userId ?? ''),
+      ),  
+      // Pastikan posisi floating button tetap di kanan bawah
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }
