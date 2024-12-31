@@ -15,14 +15,14 @@ import '../widgets/popup_recipe_grid.dart';
 import '../widgets/dialogs/recipe_details_dialog.dart';
 import '../widgets/dialogs/settings_dialog.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class PremiumScreen extends StatefulWidget {
+  const PremiumScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<PremiumScreen> createState() => _PremiumScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _PremiumScreenState extends State<PremiumScreen> {
   int _selectedIndex = 0;
   String? _userId;
 

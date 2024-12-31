@@ -27,7 +27,7 @@ class AuthService with ChangeNotifier {
 
   Future<void> initializeAuth() async {
     if (_isInitialized) return;
-    
+
     try {
       _isLoading = true;
       notifyListeners();
@@ -37,9 +37,9 @@ class AuthService with ChangeNotifier {
       _token = await _storage.read(key: 'auth_token');
       _username = await _storage.read(key: 'username');
       _email = await _storage.read(key: 'email');
-      
+
       print('Auth initialized - userId: $_userId, username: $_username');
-      
+
       _isInitialized = true;
     } catch (e) {
       print('Error initializing auth: $e');
@@ -74,7 +74,8 @@ class AuthService with ChangeNotifier {
     return _email;
   }
 
-    Future<void> login(String email, String password) async {
+  // New method to handle login and return role
+  Future<String> loginAndGetRole(String email, String password) async {
     try {
       _isLoading = true;
       notifyListeners();
@@ -90,24 +91,79 @@ class AuthService with ChangeNotifier {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        
+
         if (data['data'] != null) {
           _userId = data['data']['userId'].toString();
           _token = data['data']['token'] ?? _userId;
           _username = data['data']['username'];
           _email = data['data']['email'];
-          
+
           // Save user data
           await _storage.write(key: 'user_id', value: _userId);
           await _storage.write(key: 'auth_token', value: _token);
           await _storage.write(key: 'username', value: _username);
           await _storage.write(key: 'email', value: _email);
-          
+
           print('Login successful - userId: $_userId, username: $_username');
 
           _isInitialized = true;
           await initializeAuth(); // Reinitialize auth state
-          
+
+          notifyListeners();
+
+          // Assuming the API returns a role in the response data.
+          return data['data']['role'] ??
+              'free_user'; // Adjust the role as necessary
+        } else {
+          throw Exception('Invalid response data');
+        }
+      } else {
+        final error = json.decode(response.body);
+        throw Exception(error['message'] ?? 'Login failed');
+      }
+    } catch (e) {
+      print('Login error: $e');
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> login(String email, String password) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      final response = await http.post(
+        Uri.parse('${ApiConstants.baseUrl}/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'email': email,
+          'password': password,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        if (data['data'] != null) {
+          _userId = data['data']['userId'].toString();
+          _token = data['data']['token'] ?? _userId;
+          _username = data['data']['username'];
+          _email = data['data']['email'];
+
+          // Save user data
+          await _storage.write(key: 'user_id', value: _userId);
+          await _storage.write(key: 'auth_token', value: _token);
+          await _storage.write(key: 'username', value: _username);
+          await _storage.write(key: 'email', value: _email);
+
+          print('Login successful - userId: $_userId, username: $_username');
+
+          _isInitialized = true;
+          await initializeAuth(); // Reinitialize auth state
+
           notifyListeners();
         } else {
           throw Exception('Invalid response data');
@@ -159,15 +215,15 @@ class AuthService with ChangeNotifier {
       notifyListeners();
 
       await _storage.deleteAll();
-      
+
       _userId = null;
       _token = null;
       _username = null;
       _email = null;
       _isInitialized = false;
-      
+
       print('Logout successful');
-      
+
       notifyListeners();
     } catch (e) {
       print('Logout error: $e');
@@ -236,16 +292,16 @@ class AuthService with ChangeNotifier {
   Future<void> updateProfile(Map<String, dynamic> profileData) async {
     final userId = await getCurrentUserId();
     final currentEmail = await getEmail(); // Tambahkan method untuk get email
-    
+
     // Tambahkan email ke profileData
     profileData['email'] = currentEmail;
-    
+
     final response = await http.put(
       Uri.parse('${ApiConstants.baseUrl}/users/$userId/profile'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode(profileData),
     );
-    
+
     if (response.statusCode != 200) {
       throw Exception('Failed to update profile');
     }
@@ -279,7 +335,7 @@ class AuthService with ChangeNotifier {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        
+
         // Update stored user data
         if (data['email'] != null) {
           await _storage.write(key: 'email', value: data['email']);
