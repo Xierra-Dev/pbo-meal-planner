@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/services/auth_service.dart';
+import 'core/services/chat_service.dart';
 import 'core/services/saved_recipe_service.dart';
 import 'core/services/planner_service.dart';
 import 'core/services/recipe_service.dart';
@@ -35,6 +36,9 @@ void main() {
         ),
         ChangeNotifierProvider<ProfileService>(
           create: (_) => ProfileService(),
+        ),
+        Provider<ChatService>(
+          create: (_) => ChatService(),
         ),
       ],
       child: const MyApp(),

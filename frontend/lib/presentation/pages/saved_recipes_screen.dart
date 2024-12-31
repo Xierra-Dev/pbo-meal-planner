@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/models/recipe.dart';
 import '../../core/services/saved_recipe_service.dart';
+import '../widgets/chat_floating_button.dart';
 import '../widgets/recipe_card.dart';
 import '../widgets/dialogs/recipe_details_dialog.dart';
+import '../../core/services/auth_service.dart';
 
 class SavedRecipesScreen extends StatefulWidget {
   const SavedRecipesScreen({super.key});
@@ -14,6 +16,7 @@ class SavedRecipesScreen extends StatefulWidget {
 
 class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
   late Future<List<Recipe>> _savedRecipesFuture;
+  String? _userId;
 
   @override
   void initState() {
@@ -24,6 +27,15 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
   void _refreshSavedRecipes() {
     final savedRecipeService = context.read<SavedRecipeService>();
     _savedRecipesFuture = savedRecipeService.getSavedRecipes();
+  }
+
+  Future<void> _loadUserId() async {
+    final userId = await context.read<AuthService>().getCurrentUserId();
+    if (mounted) {
+      setState(() {
+        _userId = userId;
+      });
+    }
   }
 
   @override
@@ -241,6 +253,17 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
           ),
         ),
       ),
+      floatingActionButton: Theme(
+        data: Theme.of(context).copyWith(
+          floatingActionButtonTheme: const FloatingActionButtonThemeData(
+            backgroundColor: Colors.purple, // Sesuaikan dengan warna tema aplikasi
+            foregroundColor: Colors.white,
+          ),
+        ),
+        child: ChatFloatingButton(userId: _userId ?? ''),
+      ),  
+      // Pastikan posisi floating button tetap di kanan bawah
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }
