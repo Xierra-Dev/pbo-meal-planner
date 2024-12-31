@@ -74,7 +74,7 @@ class AuthService with ChangeNotifier {
     return _email;
   }
 
-  // New method to handle login and return role
+  // Login method that also returns the user's role
   Future<String> loginAndGetRole(String email, String password) async {
     try {
       _isLoading = true;
@@ -98,7 +98,7 @@ class AuthService with ChangeNotifier {
           _username = data['data']['username'];
           _email = data['data']['email'];
 
-          // Save user data
+          // Save user data securely
           await _storage.write(key: 'user_id', value: _userId);
           await _storage.write(key: 'auth_token', value: _token);
           await _storage.write(key: 'username', value: _username);
@@ -111,9 +111,8 @@ class AuthService with ChangeNotifier {
 
           notifyListeners();
 
-          // Assuming the API returns a role in the response data.
-          return data['data']['role'] ??
-              'free_user'; // Adjust the role as necessary
+          // Return the role from the API response
+          return data['data']['role'] ?? 'free_user';
         } else {
           throw Exception('Invalid response data');
         }
@@ -181,7 +180,8 @@ class AuthService with ChangeNotifier {
     }
   }
 
-  Future<void> register(String username, String email, String password) async {
+  Future<void> register(
+      String username, String email, String password, String role) async {
     try {
       _isLoading = true;
       notifyListeners();
@@ -193,6 +193,7 @@ class AuthService with ChangeNotifier {
           'username': username,
           'email': email,
           'password': password,
+          'role': role, // Include the role in the request body
         }),
       );
 
