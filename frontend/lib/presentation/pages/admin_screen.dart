@@ -320,11 +320,7 @@ class _AdminScreenState extends State<AdminScreen> {
                 foregroundColor: Colors.white,
               ),
             ),
-            child: _userId != null
-                ? ChatFloatingButton(userId: _userId!)
-                : const ChatFloatingButton(
-                    userId: 0), // Passing an int here as default
-            // Use '0' or any default string value
+            child: ChatFloatingButton(userId: _userId!),
           );
         },
       ),

@@ -74,8 +74,8 @@ class AuthService with ChangeNotifier {
     return _email;
   }
 
-  // Login method that returns a boolean indicating success
-  Future<bool> login(String email, String password) async {
+  // Login method that also returns the user's role
+  Future<String> loginAndGetRole(String email, String password) async {
     try {
       _isLoading = true;
       notifyListeners();
@@ -111,9 +111,10 @@ class AuthService with ChangeNotifier {
 
           notifyListeners();
 
-          return true; // Login was successful
+          // Return the role from the API response
+          return data['data']['role'] ?? 'free_user';
         } else {
-          return false; // Invalid response data
+          throw Exception('Invalid response data');
         }
       } else {
         final error = json.decode(response.body);
@@ -121,15 +122,14 @@ class AuthService with ChangeNotifier {
       }
     } catch (e) {
       print('Login error: $e');
-      return false; // Login failed due to error
+      rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  // Login and get role method that returns the user's role
-  Future<String> loginAndGetRole(String email, String password) async {
+  Future<void> login(String email, String password) async {
     try {
       _isLoading = true;
       notifyListeners();
@@ -164,12 +164,8 @@ class AuthService with ChangeNotifier {
           await initializeAuth(); // Reinitialize auth state
 
           notifyListeners();
-
-          // Return the role from the API response
-          return data['data']['role'] ??
-              'free_user'; // Default to 'free_user' if role is not provided
         } else {
-          return 'free_user'; // Default role if no data is returned
+          throw Exception('Invalid response data');
         }
       } else {
         final error = json.decode(response.body);
@@ -177,7 +173,7 @@ class AuthService with ChangeNotifier {
       }
     } catch (e) {
       print('Login error: $e');
-      rethrow; // Rethrow the error so the calling function can handle it
+      rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -185,21 +181,10 @@ class AuthService with ChangeNotifier {
   }
 
   Future<void> register(
-      String username,
-      String email,
-      String password,
-      String confirmPassword,
-      String firstName,
-      String lastName,
-      String role) async {
+      String username, String email, String password, String role) async {
     try {
       _isLoading = true;
       notifyListeners();
-
-      // Validate password confirmation
-      if (password != confirmPassword) {
-        throw Exception('Passwords do not match');
-      }
 
       final response = await http.post(
         Uri.parse('${ApiConstants.baseUrl}/auth/register'),
@@ -208,26 +193,17 @@ class AuthService with ChangeNotifier {
           'username': username,
           'email': email,
           'password': password,
-          'confirmPassword': confirmPassword,
-          'firstName': firstName,
-          'lastName': lastName,
-          'role': role, // Include the 'role' in the request body
+          'role': role, // Include the role in the request body
         }),
       );
 
-      // Handle the API response
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = json.decode(response.body);
-        if (!data['success']) {
-          throw Exception(data['message'] ?? 'Registration failed');
-        }
-      } else {
+      if (response.statusCode != 200) {
         final error = json.decode(response.body);
         throw Exception(error['message'] ?? 'Registration failed');
       }
     } catch (e) {
       print('Registration error: $e');
-      throw Exception('Registration failed due to error: $e');
+      rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -316,9 +292,9 @@ class AuthService with ChangeNotifier {
 
   Future<void> updateProfile(Map<String, dynamic> profileData) async {
     final userId = await getCurrentUserId();
-    final currentEmail = await getEmail();
+    final currentEmail = await getEmail(); // Tambahkan method untuk get email
 
-    // Add email to profileData
+    // Tambahkan email ke profileData
     profileData['email'] = currentEmail;
 
     final response = await http.put(
@@ -337,16 +313,19 @@ class AuthService with ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
+      // Get current user ID if not provided
       final currentUserId = userId ?? await getCurrentUserId();
       if (currentUserId == null) {
         throw Exception('No user logged in');
       }
 
+      // Get auth token
       final token = await getToken();
       if (token == null) {
         throw Exception('No auth token found');
       }
 
+      // Make API request
       final response = await http.get(
         Uri.parse('${ApiConstants.baseUrl}/users/$currentUserId/profile'),
         headers: {

@@ -18,6 +18,7 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
   late Future<List<Recipe>> _savedRecipesFuture;
   int? _userId;
 
+
   @override
   void initState() {
     super.initState();
@@ -34,8 +35,7 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
   Future<void> _loadUserId() async {
     try {
       final userIdStr = await context.read<AuthService>().getCurrentUserId();
-      print(
-          'Received userId from AuthService: $userIdStr (type: ${userIdStr?.runtimeType})');
+      print('Received userId from AuthService: $userIdStr (type: ${userIdStr?.runtimeType})');
       if (mounted) {
         setState(() {
           _userId = userIdStr != null ? int.parse(userIdStr.toString()) : null;
@@ -46,6 +46,7 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -53,13 +54,11 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
         preferredSize: const Size.fromHeight(kToolbarHeight),
         child: Center(
           child: Container(
-            constraints:
-                const BoxConstraints(maxWidth: 800), // Sama dengan konten
+            constraints: const BoxConstraints(maxWidth: 800), // Sama dengan konten
             child: AppBar(
               automaticallyImplyLeading: false,
               title: const Padding(
-                padding: EdgeInsets.symmetric(
-                    horizontal: 24.0), // Sama dengan konten
+                padding: EdgeInsets.symmetric(horizontal: 24.0), // Sama dengan konten
                 child: Text('Saved Recipes'),
               ),
               backgroundColor: Colors.transparent,
@@ -72,8 +71,7 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
           child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
             child: FutureBuilder<List<Recipe>>(
               future: _savedRecipesFuture,
               builder: (context, snapshot) {
@@ -162,17 +160,14 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
                             isSaved: true,
                             onSaveRecipe: (recipe, isSaved) async {
                               try {
-                                final savedRecipeService =
-                                    context.read<SavedRecipeService>();
-                                await savedRecipeService
-                                    .unsaveRecipe(recipe.id);
+                                final savedRecipeService = context.read<SavedRecipeService>();
+                                await savedRecipeService.unsaveRecipe(recipe.id);
                                 if (mounted) {
                                   Navigator.of(context).pop();
                                   _refreshSavedRecipes();
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content:
-                                          Text('Recipe removed from saved'),
+                                      content: Text('Recipe removed from saved'),
                                       backgroundColor: Colors.red,
                                     ),
                                   );
@@ -181,8 +176,7 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
                                 if (mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content:
-                                          Text('Failed to remove recipe: $e'),
+                                      content: Text('Failed to remove recipe: $e'),
                                       backgroundColor: Colors.red,
                                     ),
                                   );
@@ -194,9 +188,8 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
                       },
                       onSaveRecipe: (recipe, isSaved) async {
                         try {
-                          final savedRecipeService =
-                              context.read<SavedRecipeService>();
-
+                          final savedRecipeService = context.read<SavedRecipeService>();
+                          
                           // Show loading indicator
                           showDialog(
                             context: context,
@@ -205,42 +198,38 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
                               child: CircularProgressIndicator(),
                             ),
                           );
-
+                          
                           // Unsave recipe
                           await savedRecipeService.unsaveRecipe(recipe.id);
-
+                          
                           if (mounted) {
                             // Close loading indicator
                             Navigator.of(context).pop();
-
+                            
                             // Update the list
                             setState(() {
-                              _savedRecipesFuture = Future.value(recipes
-                                  .where((r) => r.id != recipe.id)
-                                  .toList());
+                              _savedRecipesFuture = Future.value(
+                                recipes.where((r) => r.id != recipe.id).toList()
+                              );
                             });
-
+                            
                             // Show confirmation snackbar
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content:
-                                    const Text('Recipe removed from saved'),
+                                content: const Text('Recipe removed from saved'),
                                 action: SnackBarAction(
                                   label: 'Undo',
                                   onPressed: () async {
                                     try {
-                                      await savedRecipeService
-                                          .saveRecipe(recipe);
+                                      await savedRecipeService.saveRecipe(recipe);
                                       if (mounted) {
                                         _refreshSavedRecipes();
                                       }
                                     } catch (e) {
                                       if (mounted) {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
+                                        ScaffoldMessenger.of(context).showSnackBar(
                                           SnackBar(
-                                            content: Text(
-                                                'Failed to restore recipe: $e'),
+                                            content: Text('Failed to restore recipe: $e'),
                                             backgroundColor: Colors.red,
                                           ),
                                         );
@@ -255,7 +244,7 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
                           if (mounted) {
                             // Close loading if showing
                             Navigator.of(context).pop();
-
+                            
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text('Failed to remove recipe: $e'),
@@ -286,10 +275,7 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
                 foregroundColor: Colors.white,
               ),
             ),
-            child: _userId != null
-                ? ChatFloatingButton(
-                    userId: _userId!) // Directly passing the int value
-                : const ChatFloatingButton(userId: 0),
+            child: ChatFloatingButton(userId: _userId!),
           );
         },
       ),
@@ -298,3 +284,4 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
     );
   }
 }
+

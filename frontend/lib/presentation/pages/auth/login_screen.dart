@@ -9,6 +9,7 @@ import 'package:nutriguide/presentation/pages/premium_screen.dart'
 import 'package:nutriguide/presentation/pages/admin_screen.dart'
     as admin_screen;
 import 'package:provider/provider.dart';
+import 'package:nutriguide/utils/navigation_helper.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -21,8 +22,71 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  String? _selectedRole; // Menyimpan peran yang dipilih
   bool _isLoading = false;
   bool _obscurePassword = true;
+
+  Future<void> _handleLogin() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final role = await authService.loginAndGetRole(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+
+      // Validasi tambahan: pastikan peran yang dipilih sesuai
+      if (_selectedRole != role) {
+        throw Exception('Peran yang dipilih tidak sesuai dengan akun Anda.');
+      }
+
+      // Navigasi berdasarkan peran
+      if (mounted) {
+        switch (role) {
+          case 'free_user':
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const home_screen.HomeScreen()),
+            );
+            break;
+          case 'premium_user':
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                  builder: (_) => const premium_screen.PremiumScreen()),
+            );
+            break;
+          case 'nutritionist_admin':
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                  builder: (_) => const admin_screen.AdminScreen()),
+            );
+            break;
+          default:
+            throw Exception('Peran pengguna tidak dikenali');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -95,58 +159,44 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Future<void> _handleLogin() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      final authService = Provider.of<AuthService>(context, listen: false);
-
-      // Attempt to login first and get the result (success or failure)
-      final loginSuccess = await authService.login(
-        _emailController.text.trim(),
-        _passwordController.text,
-      );
-
-      if (loginSuccess) {
-        // Now get the role if login was successful
-        final role = await authService.loginAndGetRole(
-          _emailController.text.trim(),
-          _passwordController.text,
-        );
-
-        // Now use the role for navigation
-        if (role == 'free_user') {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const home_screen.HomeScreen()),
-          );
-        } else if (role == 'premium_user') {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-                builder: (_) => const premium_screen.PremiumScreen()),
-          );
-        } else if (role == 'nutritionist_admin') {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const admin_screen.AdminScreen()),
-          );
-        } else {
-          throw Exception('Unknown role');
+  // Build the dropdown role selection
+  Widget _buildRoleDropdown() {
+    return DropdownButtonFormField<String>(
+      value: _selectedRole,
+      decoration: InputDecoration(
+        labelText: 'Select Role',
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        filled: true,
+        fillColor: Colors.grey[50],
+      ),
+      items: const [
+        DropdownMenuItem(
+          value: 'free_user',
+          child: Text('Free User'),
+        ),
+        DropdownMenuItem(
+          value: 'premium_user',
+          child: Text('Premium User'),
+        ),
+        DropdownMenuItem(
+          value: 'nutritionist_admin',
+          child: Text('Admin Ahli Gizi'),
+        ),
+      ],
+      onChanged: (value) {
+        setState(() {
+          _selectedRole = value;
+        });
+      },
+      validator: (value) {
+        if (value == null) {
+          return 'Please select a role';
         }
-      } else {
-        throw Exception('Login failed');
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
+        return null;
+      },
+    );
   }
 
   @override
@@ -173,7 +223,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
-          // Positioned 'Back' Button
           Positioned(
             top: 24,
             left: 24,
@@ -224,7 +273,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
 
-          // Content - Login Form
           Center(
             child: SingleChildScrollView(
               child: Container(
@@ -232,7 +280,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 padding: const EdgeInsets.all(32.0),
                 child: Row(
                   children: [
-                    // Left Side - Login Form
                     Expanded(
                       child: Card(
                         elevation: 4,
@@ -247,7 +294,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                // Logo
                                 Icon(
                                   Icons.restaurant_menu,
                                   size: 64,
@@ -279,8 +325,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                 _buildEmailField(),
                                 const SizedBox(height: 16),
                                 _buildPasswordField(),
+                                const SizedBox(height: 16),
+                                _buildRoleDropdown(),
                                 const SizedBox(height: 24),
-                                // Login Button
                                 ElevatedButton(
                                   onPressed: _isLoading ? null : _handleLogin,
                                   style: ElevatedButton.styleFrom(
@@ -310,8 +357,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                         ),
                                 ),
                                 const SizedBox(height: 16),
-
-                                // Register Link
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
@@ -323,11 +368,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                     TextButton(
                                       onPressed: () {
-                                        Navigator.pushReplacement(
+                                        NavigationHelper.navigateToPage(
                                           context,
-                                          MaterialPageRoute(
-                                              builder: (_) =>
-                                                  const RegisterScreen()),
+                                          const RegisterScreen(),
                                         );
                                       },
                                       child: const Text(
@@ -342,37 +385,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               ],
                             ),
                           ),
-                        ),
-                      ),
-                    ),
-
-                    // Right Side - Image/Illustration
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(32.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Image.asset(
-                              'assets/images/logo.png',
-                              height: 200,
-                            ),
-                            const SizedBox(height: 32),
-                            Text(
-                              'Discover Delicious Recipes',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headlineMedium
-                                  ?.copyWith(fontWeight: FontWeight.bold),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'NutriGuide helps you stay on top of your health goals!',
-                              style: Theme.of(context).textTheme.bodyLarge,
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
                         ),
                       ),
                     ),
