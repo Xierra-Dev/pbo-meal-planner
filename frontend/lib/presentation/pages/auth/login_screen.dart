@@ -37,10 +37,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
       // Tunggu auth check selesai
       await Future.delayed(const Duration(milliseconds: 100));
-
+      
       // Cek status login
       final isLoggedIn = await authService.isLoggedIn();
-
+      
       if (mounted && isLoggedIn) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const HomeScreen()),
@@ -74,7 +74,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  @override
+    @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
@@ -86,21 +86,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 image: const AssetImage('assets/images/hero-bg.jpg'),
                 fit: BoxFit.cover,
                 colorFilter: ColorFilter.mode(
-                  Colors.black
-                      .withOpacity(0.6), // Menambah opacity untuk efek gelap
+                  Colors.black.withOpacity(0.6), // Menambah opacity untuk efek gelap
                   BlendMode.darken,
                 ),
               ),
             ),
             child: BackdropFilter(
-              filter: ImageFilter.blur(
-                  sigmaX: 5, sigmaY: 5), // Menambahkan efek blur
+              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5), // Menambahkan efek blur
               child: Container(
                 color: Colors.black.withOpacity(0.1), // Overlay tambahan
               ),
             ),
           ),
-
+          
           // Di dalam Stack
           Positioned(
             top: 24,
@@ -133,8 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         color: Colors.transparent,
                         child: InkWell(
                           onTap: () => Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(
-                                builder: (_) => const LandingScreen()),
+                            MaterialPageRoute(builder: (_) => const LandingScreen()),
                           ),
                           borderRadius: BorderRadius.circular(12),
                           hoverColor: Colors.white.withOpacity(0.1),
@@ -205,23 +202,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                 const SizedBox(height: 16),
                                 Text(
                                   'Welcome Back!',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineSmall
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                   textAlign: TextAlign.center,
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
                                   'Sign in to continue to NutriGuide',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodyLarge
-                                      ?.copyWith(
-                                        color: Colors.grey[600],
-                                      ),
+                                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                    color: Colors.grey[600],
+                                  ),
                                   textAlign: TextAlign.center,
                                 ),
                                 const SizedBox(height: 32),
@@ -233,8 +224,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   decoration: InputDecoration(
                                     labelText: 'Email',
                                     hintText: 'Enter your email address',
-                                    prefixIcon:
-                                        const Icon(Icons.email_outlined),
+                                    prefixIcon: const Icon(Icons.email_outlined),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
@@ -268,9 +258,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     fillColor: Colors.grey[50],
                                     suffixIcon: IconButton(
                                       icon: Icon(
-                                        _obscurePassword
-                                            ? Icons.visibility
-                                            : Icons.visibility_off,
+                                        _obscurePassword ? Icons.visibility : Icons.visibility_off,
                                       ),
                                       onPressed: () {
                                         setState(() {
@@ -295,8 +283,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ElevatedButton(
                                   onPressed: _isLoading ? null : _handleLogin,
                                   style: ElevatedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 16),
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
@@ -307,9 +294,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                           width: 20,
                                           child: CircularProgressIndicator(
                                             strokeWidth: 2,
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                                    Colors.white),
+                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                           ),
                                         )
                                       : const Text(
@@ -369,24 +354,18 @@ class _LoginScreenState extends State<LoginScreen> {
                             const SizedBox(height: 32),
                             Text(
                               'Discover Delicious Recipes',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headlineMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
+                              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
                               textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 16),
                             Text(
                               'Explore thousands of recipes and find your next favorite meal',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(
-                                    color: Colors.white,
-                                  ),
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: Colors.white,
+                              ),
                               textAlign: TextAlign.center,
                             ),
                           ],

@@ -4,7 +4,6 @@ import '../../core/models/recipe.dart';
 import '../../core/services/recipe_service.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/saved_recipe_service.dart';
-import '../widgets/chat_floating_button.dart';
 import 'explore_screen.dart';
 import 'planner_screen.dart';
 import 'saved_recipes_screen.dart';
@@ -24,7 +23,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
-  int? _userId;
 
   final List<Widget> _screens = [
     const HomeContent(),
@@ -32,25 +30,6 @@ class _HomeScreenState extends State<HomeScreen> {
     const SavedRecipesScreen(),
     const PlannerScreen(),
   ];
-
-  void initState() {
-    super.initState();
-    _loadUserId();
-  }
-
-  Future<void> _loadUserId() async {
-    try {
-      final userIdStr = await context.read<AuthService>().getCurrentUserId();
-      print('Received userId from AuthService: $userIdStr (type: ${userIdStr?.runtimeType})');
-      if (mounted) {
-        setState(() {
-          _userId = userIdStr != null ? int.parse(userIdStr.toString()) : null;
-        });
-      }
-    } catch (e) {
-      print('Error loading userId: $e');
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -317,31 +296,16 @@ class _HomeScreenState extends State<HomeScreen> {
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+
+
           // Main Content Area
           Expanded(
             child: _screens[_selectedIndex],
           ),
+
+
         ],
       ),
-      floatingActionButton: Builder(
-        builder: (context) {
-          if (_userId == null) {
-            print('UserId is null, not showing chat button');
-            return const SizedBox.shrink();
-          }
-          return Theme(
-            data: Theme.of(context).copyWith(
-              floatingActionButtonTheme: const FloatingActionButtonThemeData(
-                backgroundColor: Colors.purple,
-                foregroundColor: Colors.white,
-              ),
-            ),
-            child: ChatFloatingButton(userId: _userId!),
-          );
-        },
-      ),
-      // Pastikan posisi floating button tetap di kanan bawah
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }

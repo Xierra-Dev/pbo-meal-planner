@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import '../../../core/services/auth_service.dart';
+import '../../../../../../core/services/auth_service.dart';
 import 'login_screen.dart';
 import '../../widgets/requirement_item.dart';
 import 'dart:ui';
 import 'package:nutriguide/utils/navigation_helper.dart';
 import 'package:lottie/lottie.dart';
-import 'package:mask_text_input_formatter/mask_text_input_formatter.dart'; // Import mask_text_input_formatter
+import 'dart:math' show sin, pi;
+import 'package:nutriguide/presentation/pages/landing_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -16,23 +16,14 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final _cardNumberFormatter = MaskTextInputFormatter(
-      mask: '####-####-####-####'); // Masker untuk nomor kartu
-  final _cvvFormatter = MaskTextInputFormatter(mask: '###');
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-
-  final _expiryDateController = TextEditingController();
-  final _expiryDateFormatter =
-      MaskTextInputFormatter(mask: '##-##-##'); // Mask untuk Expiry Date
-
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-  String? _selectedRole;
   bool _has8Characters = false;
   bool _hasNumber = false;
   bool _hasSymbol = false;
@@ -46,20 +37,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Checking the role and proceeding accordingly
-      if (_selectedRole == 'premium_user') {
-        final paid = await _showPaymentDialog();
-        if (!paid) {
-          throw Exception('Payment required for premium registration');
-        }
-      } else if (_selectedRole == 'nutritionist_admin') {
-        final isVerified = await _verifyAdminEmail();
-        if (!isVerified) {
-          throw Exception(
-              'Admin verification required. Please check your email.');
-        }
-      }
-
       await _authService.register(
         _usernameController.text.trim(),
         _emailController.text.trim(),
@@ -701,22 +678,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildCreateAccountButton() {
-    return ElevatedButton(
-      onPressed: _isLoading ? null : _handleRegister,
-      child: _isLoading
-          ? const CircularProgressIndicator()
-          : const Text('Create Account'),
-    );
-  }
-
-  Widget _buildLoginLink() {
-    return TextButton(
-      onPressed: () => Navigator.pop(context),
-      child: const Text('Already have an account? Login'),
     );
   }
 }

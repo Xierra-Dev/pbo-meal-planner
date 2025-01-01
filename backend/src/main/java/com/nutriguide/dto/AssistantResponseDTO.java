@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 @Data
 public class AssistantResponseDTO {
     private Long id;
-    private Long userId;  // Changed to Long to match User entity
+    private String userId;
     private String message;
     private String response;
     private LocalDateTime timestamp;
