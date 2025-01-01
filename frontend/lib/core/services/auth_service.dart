@@ -184,8 +184,14 @@ class AuthService with ChangeNotifier {
     }
   }
 
-  Future<void> register(String username, String email, String password,
-      String confirmPassword, String role) async {
+  Future<void> register(
+      String username,
+      String email,
+      String password,
+      String confirmPassword,
+      String firstName,
+      String lastName,
+      String role) async {
     try {
       _isLoading = true;
       notifyListeners();
@@ -203,7 +209,8 @@ class AuthService with ChangeNotifier {
           'email': email,
           'password': password,
           'confirmPassword': confirmPassword,
-
+          'firstName': firstName,
+          'lastName': lastName,
           'role': role, // Include the 'role' in the request body
         }),
       );
