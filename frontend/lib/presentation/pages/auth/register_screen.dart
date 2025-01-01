@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../../../../../core/services/auth_service.dart';
+import 'package:flutter/services.dart';
+import '../../../core/services/auth_service.dart';
 import 'login_screen.dart';
 import '../../widgets/requirement_item.dart';
 import 'dart:ui';
 import 'package:nutriguide/utils/navigation_helper.dart';
 import 'package:lottie/lottie.dart';
-import 'dart:math' show sin, pi;
-import 'package:nutriguide/presentation/pages/landing_screen.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart'; // Import mask_text_input_formatter
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -16,20 +16,30 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  final _cardNumberFormatter = MaskTextInputFormatter(
+      mask: '####-####-####-####'); // Masker untuk nomor kartu
+  final _cvvFormatter = MaskTextInputFormatter(mask: '###');
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+
+  final _expiryDateController = TextEditingController();
+  final _expiryDateFormatter =
+      MaskTextInputFormatter(mask: '##-##-##'); // Mask untuk Expiry Date
+
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  String? _selectedRole;
   bool _has8Characters = false;
   bool _hasNumber = false;
   bool _hasSymbol = false;
 
   final AuthService _authService = AuthService();
 
+<<<<<<< HEAD
   // Di dalam _handleRegister()
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
@@ -268,6 +278,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+=======
+>>>>>>> parent of f725b88 (Revert "register role tapi navigasi home screen belum sesuai")
   void _checkPasswordRequirements(String password) {
     setState(() {
       _has8Characters = password.length >= 8;
@@ -276,409 +288,404 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
   }
 
-  @override
-  void dispose() {
-    _usernameController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
-    super.dispose();
+  Future<bool> _showPaymentDialog() async {
+    return await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.workspace_premium,
+                      size: 48, color: Theme.of(context).primaryColor),
+                  const SizedBox(height: 16),
+                  Text('Premium Subscription',
+                      style: Theme.of(context).textTheme.headlineSmall),
+                  const SizedBox(height: 24),
+                  Text('Premium Features:',
+                      style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  const Text('• Personalized meal plans'),
+                  const Text('• Advanced nutrition tracking'),
+                  const Text('• Expert consultation access'),
+                  const SizedBox(height: 24),
+                  Text('Monthly fee: \$5.00', // Ubah harga menjadi 5 dolar
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleLarge
+                          ?.copyWith(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 24),
+                  _buildCardInputFields(),
+                  const SizedBox(height: 24),
+                  _buildPaymentDialogActions(),
+                ],
+              ),
+            ),
+          ),
+        ) ??
+        false; // Ensure a boolean is returned (false if the dialog is dismissed)
   }
 
-    @override
+  Future<bool> _verifyAdminEmail() async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 24),
+              const Text('Verifying Admin Credentials',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              const Text('Please check your email for verification link.',
+                  textAlign: TextAlign.center),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('I\'ve Verified My Email'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    return result ?? false;
+  }
+
+  Future<void> _handleRegister() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Checking the role and proceeding accordingly
+      if (_selectedRole == 'premium_user') {
+        final paid = await _showPaymentDialog();
+        if (!paid) {
+          throw Exception('Payment required for premium registration');
+        }
+      } else if (_selectedRole == 'nutritionist_admin') {
+        final isVerified = await _verifyAdminEmail();
+        if (!isVerified) {
+          throw Exception(
+              'Admin verification required. Please check your email.');
+        }
+      }
+
+      await _authService.register(
+        _usernameController.text.trim(),
+        _emailController.text.trim(),
+        _passwordController.text,
+        _selectedRole ??
+            'free_user', // This will fallback to 'free_user' if null
+      );
+
+      if (mounted) {
+        _showRegistrationSuccessDialog();
+      }
+    } catch (e) {
+      // Catching and passing the error as an Exception to the snack bar
+      _showErrorSnackBar(e is Exception ? e : Exception(e.toString()));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showRegistrationSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                  width: 150,
+                  height: 150,
+                  child: Lottie.asset('assets/animations/success.json',
+                      repeat: false)),
+              const SizedBox(height: 24),
+              Text('Welcome to NutriGuide!',
+                  style: Theme.of(context).textTheme.headlineSmall),
+              const SizedBox(height: 16),
+              Text(
+                  'You\'ve successfully registered as a ${_selectedRole?.replaceAll('_', ' ') ?? ''}',
+                  textAlign: TextAlign.center),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  NavigationHelper.navigateToPage(context, const LoginScreen(),
+                      replace: true);
+                },
+                child: const Text('Continue to Login'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showErrorSnackBar(Exception e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+    }
+  }
+
+  Widget _buildRoleDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DropdownButtonFormField<String>(
+          value: _selectedRole,
+          decoration: InputDecoration(
+            labelText: 'Select Role',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            filled: true,
+            fillColor: Colors.grey[50],
+          ),
+          items: const [
+            DropdownMenuItem(value: 'free_user', child: Text('Free User')),
+            DropdownMenuItem(
+                value: 'premium_user', child: Text('Premium User')),
+            DropdownMenuItem(
+                value: 'nutritionist_admin', child: Text('Admin Ahli Gizi')),
+          ],
+          onChanged: (value) => setState(() => _selectedRole = value),
+          validator: (value) => value == null ? 'Please select a role' : null,
+        ),
+        if (_selectedRole != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            _selectedRole == 'premium_user'
+                ? '* Premium subscription required (\$5.00/month)'
+                : _selectedRole == 'nutritionist_admin'
+                    ? '* Email verification required'
+                    : '',
+            style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 12,
+                fontStyle: FontStyle.italic),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildCardInputFields() {
+    return Column(
+      children: [
+        _buildTextField('Card Number',
+            keyboardType: TextInputType.number,
+            inputFormatters: [_cardNumberFormatter]),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _buildTextField('Expiry Date',
+                controller: _expiryDateController,
+                width: 120,
+                inputFormatters: [_expiryDateFormatter]),
+            _buildTextField('CVV',
+                width: 100,
+                inputFormatters: [_cvvFormatter],
+                maxLength: 3), // Max 3 digit CVV
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTextField(String label,
+      {TextEditingController? controller,
+      TextInputType keyboardType = TextInputType.text,
+      double width = double.infinity,
+      bool obscureText = false,
+      Function(String)? onChanged,
+      List<TextInputFormatter>? inputFormatters,
+      int? maxLength}) {
+    return SizedBox(
+      width: width,
+      child: TextFormField(
+        controller: controller,
+        obscureText: obscureText,
+        onChanged: onChanged,
+        keyboardType: keyboardType,
+        inputFormatters: inputFormatters, // Terapkan input formatters
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        maxLength: maxLength, // Menambahkan batasan panjang untuk CVV
+      ),
+    );
+  }
+
+  Widget _buildPaymentDialogActions() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel')),
+        const SizedBox(width: 16),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text('Subscribe'),
+        ),
+      ],
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          // Background Image dengan Blur
-          Container(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: const AssetImage('assets/images/hero-bg.jpg'),
-                fit: BoxFit.cover,
-                colorFilter: ColorFilter.mode(
-                  Colors.black.withOpacity(0.6),
-                  BlendMode.darken,
-                ),
-              ),
-            ),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-              child: Container(
-                color: Colors.black.withOpacity(0.1),
-              ),
-            ),
-          ),
-
-          // Di dalam Stack setelah background blur
-          Positioned(
-            top: 24,
-            left: 24,
-            child: MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: TweenAnimationBuilder(
-                duration: const Duration(milliseconds: 300),
-                tween: Tween<double>(begin: 0, end: 1),
-                builder: (context, double value, child) {
-                  return Transform.scale(
-                    scale: value,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.2),
-                          width: 1,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 8,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () => Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(builder: (_) => const LandingScreen()),
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                          hoverColor: Colors.white.withOpacity(0.1),
-                          splashColor: Colors.white.withOpacity(0.2),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.arrow_back_ios_new,
-                                  color: Colors.white.withOpacity(0.9),
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Back',
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.9),
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-
-          // Content
-          Center(
-            child: SingleChildScrollView(
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 1200),
-                padding: const EdgeInsets.all(32.0),
-                child: Row(
-                  children: [
-                    // Left Side - Image/Illustration
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(32.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Image.asset(
-                              'assets/images/logo.png',
-                              height: 200,
-                            ),
-                            const SizedBox(height: 32),
-                            Text(
-                              'Join Our Culinary Community',
-                              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Discover, save, and share amazing recipes with food lovers around the world',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: Colors.white,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    // Right Side - Registration Form
-                    Expanded(
-                      child: Card(
-                        elevation: 4,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Container(
-                          padding: const EdgeInsets.all(32.0),
-                          child: Form(
-                            key: _formKey,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                // Header
-                                Icon(
-                                  Icons.restaurant_menu,
-                                  size: 64,
-                                  color: Theme.of(context).primaryColor,
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'Create Account',
-                                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 32),
-
-                                // Username Field
-                                TextFormField(
-                                  controller: _usernameController,
-                                  decoration: InputDecoration(
-                                    labelText: 'Username',
-                                    hintText: 'Choose a unique username',
-                                    prefixIcon: const Icon(Icons.person_outline),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.grey[50],
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Please enter a username';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                const SizedBox(height: 16),
-
-                                // Email Field
-                                TextFormField(
-                                  controller: _emailController,
-                                  keyboardType: TextInputType.emailAddress,
-                                  decoration: InputDecoration(
-                                    labelText: 'Email',
-                                    hintText: 'Enter your email address',
-                                    prefixIcon: const Icon(Icons.email_outlined),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.grey[50],
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Please enter your email';
-                                    }
-                                    if (!value.contains('@')) {
-                                      return 'Please enter a valid email';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                const SizedBox(height: 16),
-
-                                // Password Field
-                                TextFormField(
-                                  controller: _passwordController,
-                                  obscureText: _obscurePassword,
-                                  onChanged: _checkPasswordRequirements,
-                                  decoration: InputDecoration(
-                                    labelText: 'Password',
-                                    hintText: 'Create a strong password',
-                                    prefixIcon: const Icon(Icons.lock_outline),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.grey[50],
-                                    suffixIcon: IconButton(
-                                      icon: Icon(
-                                        _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                                      ),
-                                      onPressed: () {
-                                        setState(() {
-                                          _obscurePassword = !_obscurePassword;
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Please enter a password';
-                                    }
-                                    if (!_has8Characters || !_hasNumber || !_hasSymbol) {
-                                      return 'Please meet all password requirements';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                const SizedBox(height: 8),
-
-                                // Password Requirements
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[50],
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'Password Requirements:',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      RequirementItem(
-                                        text: 'At least 8 characters',
-                                        isMet: _has8Characters,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      RequirementItem(
-                                        text: 'Contains a number',
-                                        isMet: _hasNumber,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      RequirementItem(
-                                        text: 'Contains a symbol',
-                                        isMet: _hasSymbol,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-
-                                // Confirm Password Field
-                                TextFormField(
-                                  controller: _confirmPasswordController,
-                                  obscureText: _obscureConfirmPassword,
-                                  decoration: InputDecoration(
-                                    labelText: 'Confirm Password',
-                                    hintText: 'Re-enter your password',
-                                    prefixIcon: const Icon(Icons.lock_outline),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.grey[50],
-                                    suffixIcon: IconButton(
-                                      icon: Icon(
-                                        _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
-                                      ),
-                                      onPressed: () {
-                                        setState(() {
-                                          _obscureConfirmPassword = !_obscureConfirmPassword;
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Please confirm your password';
-                                    }
-                                    if (value != _passwordController.text) {
-                                      return 'Passwords do not match';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                const SizedBox(height: 32),
-
-                                // Register Button
-                                ElevatedButton(
-                                  onPressed: _isLoading ? null : _handleRegister,
-                                  style: ElevatedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  child: _isLoading
-                                      ? const SizedBox(
-                                          height: 20,
-                                          width: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                          ),
-                                        )
-                                      : const Text(
-                                          'Create Account',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                ),
-                                const SizedBox(height: 16),
-
-                                // Login Link
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      'Already have an account?',
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                    TextButton(
-                                      onPressed: () {
-                                        NavigationHelper.navigateToPage(
-                                          context,
-                                          const LoginScreen(),
-                                          replace: true,
-                                        );
-                                      },
-                                      child: const Text(
-                                        'Login',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+          _buildBackground(),
+          SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                children: [
+                  const SizedBox(height: 48),
+                  _buildRegistrationCard(),
+                ],
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildBackground() {
+    return Container(
+      decoration: BoxDecoration(
+        image: DecorationImage(
+          image: const AssetImage('assets/images/hero-bg.jpg'),
+          fit: BoxFit.cover,
+          colorFilter:
+              ColorFilter.mode(Colors.black.withOpacity(0.6), BlendMode.darken),
+        ),
+      ),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: Container(color: Colors.black.withOpacity(0.1)),
+      ),
+    );
+  }
+
+  Widget _buildRegistrationCard() {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Create Account',
+                  style: Theme.of(context).textTheme.headlineMedium),
+              const SizedBox(height: 32),
+              _buildTextField('Username', controller: _usernameController),
+              const SizedBox(height: 16),
+              _buildTextField('Email',
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress),
+              const SizedBox(height: 16),
+              _buildRoleDropdown(),
+              const SizedBox(height: 16),
+              _buildPasswordField(),
+              const SizedBox(height: 16),
+              _buildConfirmPasswordField(),
+              const SizedBox(height: 16),
+              _buildPasswordRequirements(),
+              const SizedBox(height: 24),
+              _buildCreateAccountButton(),
+              const SizedBox(height: 16),
+              _buildLoginLink(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPasswordField() {
+    return _buildTextField('Password',
+        controller: _passwordController,
+        obscureText: _obscurePassword,
+        onChanged: _checkPasswordRequirements);
+  }
+
+  Widget _buildConfirmPasswordField() {
+    return _buildTextField('Confirm Password',
+        controller: _confirmPasswordController,
+        obscureText: _obscureConfirmPassword);
+  }
+
+  Widget _buildPasswordRequirements() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Password Requirements:',
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          RequirementItem(
+              text: 'At least 8 characters', isMet: _has8Characters),
+          RequirementItem(text: 'Contains a number', isMet: _hasNumber),
+          RequirementItem(text: 'Contains a symbol', isMet: _hasSymbol),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCreateAccountButton() {
+    return ElevatedButton(
+      onPressed: _isLoading ? null : _handleRegister,
+      child: _isLoading
+          ? const CircularProgressIndicator()
+          : const Text('Create Account'),
+    );
+  }
+
+  Widget _buildLoginLink() {
+    return TextButton(
+      onPressed: () => Navigator.pop(context),
+      child: const Text('Already have an account? Login'),
     );
   }
 }
