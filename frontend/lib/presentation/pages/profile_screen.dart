@@ -16,12 +16,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _username = '';
   Map<String, dynamic> _profileData = {};
   bool _isLoading = false;
+  String? _currentRole;
 
   @override
   void initState() {
     super.initState();
     _authService = Provider.of<AuthService>(context, listen: false);
     _loadProfileData();
+    _loadUserRole();
   }
 
   Future<void> _loadProfileData() async {
@@ -29,7 +31,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       _isLoading = true;
     });
-
     final userId = await _authService.getCurrentUserId();
     if (userId != null) {
       final profile = await _authService.getUserProfile(userId);
@@ -56,6 +57,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 }
+
+  Future<void> _loadUserRole() async {
+    try {
+      final authService = context.read<AuthService>();
+      final currentRole = await authService.getCurrentUserRole();
+
+      print('Received userId from AuthService: $currentRole' );
+      
+      if (mounted) {
+        setState(() {
+          _currentRole = currentRole;
+        });
+      }
+    } catch (e) {
+      print('Error loading user data: $e');
+    }
+  }
 
   Future<void> _loadUsername() async {
     final username = await _authService.getUsername();
@@ -291,54 +309,71 @@ class _ProfileScreenState extends State<ProfileScreen> {
               // Profile Info
               // Di dalam build method, bagian Profile Info
               Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Column(
-                    children: [
-                      const CircleAvatar(
-                        radius: 50,
-                        child: Icon(Icons.person, size: 50),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _profileData['username'] ?? 'User',
-                        style: const TextStyle(
-                          fontSize: 24, 
-                          fontWeight: FontWeight.bold
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Column(
+                      children: [
+                        const CircleAvatar(
+                          radius: 50,
+                          child: Icon(Icons.person, size: 50),
                         ),
-                      ),
-                      if (_profileData['firstName'] != null || _profileData['lastName'] != null)
-                        Text(
-                          '${_profileData['firstName'] ?? ''} ${_profileData['lastName'] ?? ''}'.trim(),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              _profileData['username'] ?? 'User',
+                              style: const TextStyle(
+                                fontSize: 24, 
+                                fontWeight: FontWeight.bold
+                              ),
+                            ),
+                            if (_currentRole == 'premium_user')
+                              const Padding(
+                                padding: EdgeInsets.only(
+                                  left: 5,
+                                  bottom: 2.75,
+                                  ),
+                                child: Icon(
+                                  Icons.star,
+                                  color: Color.fromARGB(255, 227, 175, 1),
+                                  size: 26.5,
+                                ),
+                              ),
+                          ],
+                        ),
+                        if (_profileData['firstName'] != null || _profileData['lastName'] != null)
+                          Text(
+                            '${_profileData['firstName'] ?? ''} ${_profileData['lastName'] ?? ''}'.trim(),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey,
+                            ),
                           ),
-                        ),
-                      if (_profileData['bio'] != null && _profileData['bio'].toString().isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: Text(
-                            _profileData['bio'],
-                            style: const TextStyle(fontSize: 14),
-                            textAlign: TextAlign.center,
+                        if (_profileData['bio'] != null && _profileData['bio'].toString().isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Text(
+                              _profileData['bio'],
+                              style: const TextStyle(fontSize: 14),
+                              textAlign: TextAlign.center,
+                            ),
                           ),
-                        ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () => _showEditProfileDialog(context),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () => _showEditProfileDialog(context),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
+                          child: const Text('Edit Profile'),
                         ),
-                        child: const Text('Edit Profile'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                      ],
+                    ),
+                  ],
+                ),
               const SizedBox(height: 32),
 
               // Daily Nutrition Goals Card

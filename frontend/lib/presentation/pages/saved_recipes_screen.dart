@@ -18,7 +18,6 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
   late Future<List<Recipe>> _savedRecipesFuture;
   int? _userId;
   String? _currentRole;
-  final bool _isPremiumUser = false;
 
 
   @override

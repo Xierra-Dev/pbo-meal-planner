@@ -138,13 +138,28 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(width: 8),
                             FutureBuilder<String?>(
                               future: authService.getUsername(),
-                              builder: (context, snapshot) => Text(
-                                snapshot.data ?? 'Guest',
-                                style: TextStyle(
-                                  color: Colors.grey[800],
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 20,
-                                ),
+                              builder: (context, snapshot) => Row(
+                                children: [
+                                  Text(
+                                    snapshot.data ?? 'Guest',
+                                    style: TextStyle(
+                                      color: Colors.grey[800],
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 20,
+                                    ),
+                                  ),
+                                  if (_currentRole == 'premium_user') ...[
+                                    const SizedBox(width: 4),
+                                    const Padding(
+                                      padding: EdgeInsets.only(left: 2),
+                                      child: Icon(
+                                        Icons.star,
+                                        color: Color.fromARGB(255, 227, 175, 1),
+                                        size: 20,
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
                             ),
                             const SizedBox(width: 4),
@@ -314,7 +329,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             break;
                         }
                       },
-                    ),
+                    )
                   ],
                 ),
               ),
