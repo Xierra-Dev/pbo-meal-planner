@@ -1,5 +1,6 @@
 package com.nutriguide.controller;
 
+import com.nutriguide.dto.ApiResponse;
 import com.nutriguide.dto.UserProfileDto;
 import com.nutriguide.model.User;
 import com.nutriguide.exception.ResourceNotFoundException;
@@ -92,46 +93,37 @@ public class UserController {
     @GetMapping("/{userId}/profile")
     public ResponseEntity<?> getUserProfile(@PathVariable Long userId) {
         try {
-            UserProfileDto profile = userService.getUserProfile(userId);
-            return ResponseEntity.ok(profile);
+            User user = userService.findById(userId);
+            UserProfileDto profileDto = convertToProfileDto(user);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Profile retrieved successfully", profileDto));
         } catch (ResourceNotFoundException e) {
-            return new ResponseEntity<>(
-                Map.of("error", e.getMessage()),
-                HttpStatus.NOT_FOUND
-            );
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiResponse<>(false, "User not found"));
         } catch (Exception e) {
-            return new ResponseEntity<>(
-                Map.of("error", "Failed to get user profile"),
-                HttpStatus.INTERNAL_SERVER_ERROR
-            );
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiResponse<>(false, "Failed to get user profile"));
         }
     }
 
     @PutMapping("/{userId}/profile")
-    public ResponseEntity<?> updateProfile(
-        @PathVariable Long userId,
-        @Valid @RequestBody UserProfileDto profileDto
-    ) {
-        try {
-            UserProfileDto updatedProfile = userService.updateProfile(userId, profileDto);
-            return ResponseEntity.ok(updatedProfile);
-        } catch (ResourceNotFoundException e) {
-            return new ResponseEntity<>(
-                Map.of("error", e.getMessage()),
-                HttpStatus.NOT_FOUND
-            );
-        } catch (UserAlreadyExistsException e) {
-            return new ResponseEntity<>(
-                Map.of("error", e.getMessage()),
-                HttpStatus.CONFLICT
-            );
-        } catch (Exception e) {
-            return new ResponseEntity<>(
-                Map.of("error", "Failed to update profile"),
-                HttpStatus.INTERNAL_SERVER_ERROR
-            );
-        }
+public ResponseEntity<?> updateProfile(
+    @PathVariable Long userId, 
+    @Valid @RequestBody UserProfileDto profileDto,
+    @RequestHeader("Authorization") String token) {
+    try {
+        UserProfileDto updatedProfile = userService.updateProfile(userId, profileDto);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Profile updated successfully", updatedProfile));
+    } catch (ResourceNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body(new ApiResponse<>(false, e.getMessage()));
+    } catch (UserAlreadyExistsException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+            .body(new ApiResponse<>(false, e.getMessage()));
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body(new ApiResponse<>(false, "Failed to update profile: " + e.getMessage()));
     }
+}   
 
     // Check username/email availability
     @GetMapping("/check-username/{username}")
@@ -176,5 +168,20 @@ public class UserController {
             "details", e.getMessage()
         );
         return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+    }
+
+    private UserProfileDto convertToProfileDto(User user) {
+        return UserProfileDto.builder()
+            .id(user.getId())
+            .username(user.getUsername())
+            .email(user.getEmail())
+            .firstName(user.getFirstName())
+            .lastName(user.getLastName())
+            .bio(user.getBio())
+            .profilePictureUrl(user.getProfilePictureUrl())
+            .createdAt(user.getCreatedAt())
+            .updatedAt(user.getUpdatedAt())
+            .roleUser(user.getRoleUser())
+            .build();
     }
 }

@@ -8,16 +8,16 @@ import 'package:dio/dio.dart';
 
 class AuthService with ChangeNotifier {
   final _storage = const FlutterSecureStorage();
-  final _dio = Dio();
   String? _userId;
-  String? _token;
   String? _username;
   String? _email;
+  String? _roleUser;
+  String? _token;
   bool _isInitialized = false;
   bool _isLoading = false;
 
   bool get isLoading => _isLoading;
-  String? get role => role;
+
   Future<bool> get isInitialized async {
     if (!_isInitialized) {
       await initializeAuth();
@@ -27,19 +27,19 @@ class AuthService with ChangeNotifier {
 
   Future<void> initializeAuth() async {
     if (_isInitialized) return;
-
+    
     try {
       _isLoading = true;
       notifyListeners();
 
-      // Load stored credentials
       _userId = await _storage.read(key: 'user_id');
-      _token = await _storage.read(key: 'auth_token');
       _username = await _storage.read(key: 'username');
       _email = await _storage.read(key: 'email');
-
-      print('Auth initialized - userId: $_userId, username: $_username');
-
+      _roleUser = await _storage.read(key: 'role_user');
+      _token = await _storage.read(key: 'auth_token');
+      
+      print('Auth initialized - userId: $_userId, username: $_username, role: $_roleUser');
+      
       _isInitialized = true;
     } catch (e) {
       print('Error initializing auth: $e');
@@ -80,7 +80,7 @@ class AuthService with ChangeNotifier {
       notifyListeners();
 
       final response = await http.post(
-        Uri.parse('${ApiConstants.baseUrl}/auth/login'),
+        Uri.parse('${ApiConstants.baseUrl}/api/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'email': email,
@@ -88,33 +88,29 @@ class AuthService with ChangeNotifier {
         }),
       );
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-
-        if (data['data'] != null) {
-          _userId = data['data']['userId'].toString();
-          _token = data['data']['token'] ?? _userId;
-          _username = data['data']['username'];
-          _email = data['data']['email'];
-
-          // Save user data
-          await _storage.write(key: 'user_id', value: _userId);
-          await _storage.write(key: 'auth_token', value: _token);
-          await _storage.write(key: 'username', value: _username);
-          await _storage.write(key: 'email', value: _email);
-
-          print('Login successful - userId: $_userId, username: $_username');
-
-          _isInitialized = true;
-          await initializeAuth(); // Reinitialize auth state
-
-          notifyListeners();
-        } else {
-          throw Exception('Invalid response data');
-        }
+      final responseData = json.decode(response.body);
+      
+      if (response.statusCode == 200 && responseData['success'] == true) {
+        final userData = responseData['data'];
+        
+        // Store user data
+        _userId = userData['id'].toString();
+        _username = userData['username'];
+        _email = userData['email'];
+        _roleUser = userData['roleUser'];
+        _token = userData['token']; // Store token from response
+        
+        // Save to storage
+        await _storage.write(key: 'user_id', value: _userId);
+        await _storage.write(key: 'username', value: _username);
+        await _storage.write(key: 'email', value: _email);
+        await _storage.write(key: 'role_user', value: _roleUser);
+        await _storage.write(key: 'auth_token', value: _token);
+        
+        _isInitialized = true;
+        notifyListeners();
       } else {
-        final error = json.decode(response.body);
-        throw Exception(error['message'] ?? 'Login failed');
+        throw Exception(responseData['message'] ?? 'Login failed');
       }
     } catch (e) {
       print('Login error: $e');
@@ -125,56 +121,45 @@ class AuthService with ChangeNotifier {
     }
   }
 
-  Future<void> register(String username, String email, String password,
-      {String? role}) async {
+  Future<void> register(String username, String email, String password, String roleUser) async {
     try {
-      _isLoading = true;
-      notifyListeners();
+        _isLoading = true;
+        notifyListeners();
 
-      // Validate role before sending
-      final validRoles = ['free user', 'premium', 'nutritionist'];
-      final userRole =
-          role != null && validRoles.contains(role) ? role : 'free user';
+        final response = await http.post(
+            Uri.parse('${ApiConstants.baseUrl}/api/auth/register'),
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode({
+                'username': username,
+                'email': email,
+                'password': password,
+                'accountType': roleUser, // Add account type to request
+            }),
+        );
 
-      final response = await http.post(
-        Uri.parse('${ApiConstants.baseUrl}/auth/register'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'username': username,
-          'email': email,
-          'password': password,
-          'role': userRole, // Ensure role is always sent
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['data'] != null) {
-          // Extract user information including role
-          _userId = data['data']['userId'].toString();
-          _token = data['data']['token'];
-          _username = data['data']['username'];
-          _email = data['data']['email'];
-          role = data['data']['role']; // Add this line to store role
-
-          // Save user data including role to storage
-          await _storage.write(key: 'user_id', value: _userId);
-          await _storage.write(key: 'auth_token', value: _token);
-          await _storage.write(key: 'username', value: _username);
-          await _storage.write(key: 'email', value: _email);
-          await _storage.write(key: 'role', value: role); // Add this line
-
-          print(
-              'Registration successful - userId: $_userId, username: $_username, role: $role');
-          _isInitialized = true;
-          await initializeAuth();
-          notifyListeners();
-        } else {
-          throw Exception('Invalid response data during registration');
-        }
+      final responseData = json.decode(response.body);
+      
+      if (response.statusCode == 200 && responseData['success'] == true) {
+        final userData = responseData['data'];
+        
+        // Store user data
+        _userId = userData['id'].toString();
+        _username = userData['username'];
+        _email = userData['email'];
+        _roleUser = userData['roleUser'];
+        _token = userData['token']; // Store token from response
+        
+        // Save to storage
+        await _storage.write(key: 'user_id', value: _userId);
+        await _storage.write(key: 'username', value: _username);
+        await _storage.write(key: 'email', value: _email);
+        await _storage.write(key: 'role_user', value: _roleUser);
+        await _storage.write(key: 'auth_token', value: _token);
+        
+        _isInitialized = true;
+        notifyListeners();
       } else {
-        final error = json.decode(response.body);
-        throw Exception(error['message'] ?? 'Registration failed');
+        throw Exception(responseData['message'] ?? 'Registration failed');
       }
     } catch (e) {
       print('Registration error: $e');
@@ -191,15 +176,16 @@ class AuthService with ChangeNotifier {
       notifyListeners();
 
       await _storage.deleteAll();
-
+      
       _userId = null;
-      _token = null;
       _username = null;
       _email = null;
+      _roleUser = null;
+      _token = null;
       _isInitialized = false;
-
+      
       print('Logout successful');
-
+      
       notifyListeners();
     } catch (e) {
       print('Logout error: $e');
@@ -266,22 +252,43 @@ class AuthService with ChangeNotifier {
   }
 
   Future<void> updateProfile(Map<String, dynamic> profileData) async {
+  try {
     final userId = await getCurrentUserId();
-    final currentEmail = await getEmail(); // Tambahkan method untuk get email
-
-    // Tambahkan email ke profileData
-    profileData['email'] = currentEmail;
-
+    final token = await getToken();
+    
+    if (userId == null || token == null) {
+      throw Exception('User not authenticated');
+    }
+    
     final response = await http.put(
-      Uri.parse('${ApiConstants.baseUrl}/users/$userId/profile'),
-      headers: {'Content-Type': 'application/json'},
+      Uri.parse('${ApiConstants.baseUrl}/api/users/$userId/profile'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
       body: json.encode(profileData),
     );
-
+    
     if (response.statusCode != 200) {
-      throw Exception('Failed to update profile');
+      final errorData = json.decode(response.body);
+      throw Exception(errorData['message'] ?? 'Failed to update profile');
     }
+    
+    // Update local storage with new profile data
+    final responseData = json.decode(response.body);
+    if (responseData['success'] == true && responseData['data'] != null) {
+      final userData = responseData['data'];
+      if (userData['username'] != null) {
+        await _storage.write(key: 'username', value: userData['username']);
+        _username = userData['username'];
+      }
+      notifyListeners();
+    }
+  } catch (e) {
+    print('Update profile error: $e');
+    rethrow;
   }
+}
 
   Future<Map<String, dynamic>> getUserProfile([String? userId]) async {
     try {
@@ -300,33 +307,41 @@ class AuthService with ChangeNotifier {
         throw Exception('No auth token found');
       }
 
-      // Make API request
+      final url = Uri.parse('${ApiConstants.baseUrl}/api/users/$currentUserId/profile');
       final response = await http.get(
-        Uri.parse('${ApiConstants.baseUrl}/users/$currentUserId/profile'),
+        url,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
       );
 
+      print('Profile Response: ${response.body}');
+
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final responseData = json.decode(response.body);
+        
+        if (responseData['success'] == true && responseData['data'] != null) {
+          final userData = responseData['data'];
+          
+          // Update stored user data
+          if (userData['email'] != null) {
+            await _storage.write(key: 'email', value: userData['email']);
+            _email = userData['email'];
+          }
+          if (userData['username'] != null) {
+            await _storage.write(key: 'username', value: userData['username']);
+            _username = userData['username'];
+          }
 
-        // Update stored user data
-        if (data['email'] != null) {
-          await _storage.write(key: 'email', value: data['email']);
-          _email = data['email'];
+          notifyListeners();
+          return userData;
+        } else {
+          throw Exception(responseData['message'] ?? 'Failed to get profile data');
         }
-        if (data['username'] != null) {
-          await _storage.write(key: 'username', value: data['username']);
-          _username = data['username'];
-        }
-
-        notifyListeners();
-        return data;
       } else {
-        final error = json.decode(response.body);
-        throw Exception(error['message'] ?? 'Failed to get user profile');
+        final errorData = json.decode(response.body);
+        throw Exception(errorData['message'] ?? 'Failed to get profile data');
       }
     } catch (e) {
       print('Error getting user profile: $e');

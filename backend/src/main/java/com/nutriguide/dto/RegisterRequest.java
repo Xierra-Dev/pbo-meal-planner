@@ -2,10 +2,12 @@ package com.nutriguide.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import com.nutriguide.model.UserRole;
 
 @Data
 @NoArgsConstructor
@@ -15,27 +17,13 @@ public class RegisterRequest {
     private String username;
     
     @NotBlank(message = "Email is required")
-    @Email(message = "Invalid email format")
+    @Email(message = "Email is invalid")
     private String email;
     
     @NotBlank(message = "Password is required")
     @Size(min = 6, message = "Password must be at least 6 characters")
     private String password;
 
-    @NotBlank(message = "Role is required")
-    private String role;  // Add the role field
-    public String getRole() {
-        return role;
-    }
-
-    public void setRole(String role) {
-        this.role = role;
-    }
-    @Override
-    public String toString() {
-        return "RegisterRequest{" +
-                "username='" + username + '\'' +
-                ", email='" + email + '\'' +
-                ", role='" + role + '\'' +
-                '}';}
+    @NotNull(message = "Account type is required")
+    private UserRole accountType; // Changed from role to accountType
 }

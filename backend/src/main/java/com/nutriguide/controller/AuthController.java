@@ -4,10 +4,13 @@ import com.nutriguide.dto.ApiResponse;
 import com.nutriguide.dto.LoginRequest;
 import com.nutriguide.dto.RegisterRequest;
 import com.nutriguide.service.AuthService;
+import com.nutriguide.model.UserRole;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.Map;
+
 
 @RestController
 @RequestMapping("/api/auth")
@@ -21,38 +24,40 @@ public class AuthController {
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
         try {
             System.out.println("Register request received: " + request);
-    
-            // Validate input
+            
+            // Basic input validation
             if (request.getUsername() == null || request.getUsername().trim().isEmpty()) {
                 return ResponseEntity.badRequest()
                     .body(new ApiResponse(false, "Username is required"));
             }
-    
+            
             if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
                 return ResponseEntity.badRequest()
                     .body(new ApiResponse(false, "Email is required"));
             }
-    
+            
             if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
                 return ResponseEntity.badRequest()
                     .body(new ApiResponse(false, "Password is required"));
             }
-    
-            // Validate role
-            if (request.getRole() == null || request.getRole().trim().isEmpty()) {
+
+            // Account type validation
+            if (request.getAccountType() == null) {
                 return ResponseEntity.badRequest()
-                    .body(new ApiResponse(false, "Role is required"));
+                    .body(new ApiResponse(false, "Account type is required"));
             }
-    
-            // Check if role is valid
-            if (!request.getRole().equalsIgnoreCase("free user") && 
-                !request.getRole().equalsIgnoreCase("premium") && 
-                !request.getRole().equalsIgnoreCase("nutritionist")) {
+
+            // Validate account type is one of the allowed values
+            if (request.getAccountType() != UserRole.REGULAR_USER && 
+                request.getAccountType() != UserRole.PREMIUM_USER && 
+                request.getAccountType() != UserRole.ADMIN) {
                 return ResponseEntity.badRequest()
-                    .body(new ApiResponse(false, "Invalid role"));
+                    .body(new ApiResponse(false, "Invalid account type selected"));
             }
-    
-            // Pass the request to the AuthService to handle registration
+
+            // Log the account type being registered
+            System.out.println("Registering new account with type: " + request.getAccountType());
+
             return authService.register(request);
         } catch (Exception e) {
             System.out.println("Registration error: " + e.getMessage());
@@ -61,17 +66,28 @@ public class AuthController {
                 .body(new ApiResponse(false, e.getMessage()));
         }
     }
-    
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
         try {
             System.out.println("Login request received for email: " + request.getEmail());
+            
+            if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("Email is required"));
+            }
+            
+            if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("Password is required"));
+            }
+
             return authService.login(request);
         } catch (Exception e) {
             System.out.println("Login error: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.badRequest()
-                .body(new ApiResponse(false, e.getMessage()));
+                .body(ApiResponse.error("Login failed", e.getMessage()));
         }
     }
 
@@ -97,6 +113,41 @@ public class AuthController {
             return ResponseEntity.ok(new ApiResponse(true, isAvailable ? "Username is available" : "Username is taken"));
         } catch (Exception e) {
             System.out.println("Username check error: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest()
+                .body(new ApiResponse(false, e.getMessage()));
+        }
+    }
+
+    // Add a new endpoint to get available account types
+    @GetMapping("/account-types")
+    public ResponseEntity<?> getAccountTypes() {
+        try {
+            // Create a list of account type information
+            var accountTypes = new Object[] {
+                Map.of(
+                    "type", "REGULAR_USER",
+                    "name", "Free User",
+                    "description", "Basic features and recipes",
+                    "price", "Free"
+                ),
+                Map.of(
+                    "type", "PREMIUM_USER",
+                    "name", "Premium User",
+                    "description", "Access chatbot",
+                    "price", "$5/month"
+                ),
+                Map.of(
+                    "type", "ADMIN",
+                    "name", "Admin",
+                    "description", "Professional account as editor",
+                    "price", "Contact us"
+                )
+            };
+
+            return ResponseEntity.ok(new ApiResponse(true, "Account types retrieved successfully", accountTypes));
+        } catch (Exception e) {
+            System.out.println("Error retrieving account types: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.badRequest()
                 .body(new ApiResponse(false, e.getMessage()));

@@ -4,6 +4,6 @@ import lombok.Data;
 
 @Data
 public class AssistantRequestDTO {
-    private String userId;
+    private Long userId;
     private String message;
 }

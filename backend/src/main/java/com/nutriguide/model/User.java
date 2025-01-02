@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -28,6 +30,10 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role_user", nullable = false)
+    private UserRole roleUser;
+
     @Column(name = "first_name")
     private String firstName;
 
@@ -40,20 +46,24 @@ public class User {
     @Column(name = "profile_picture_url")
     private String profilePictureUrl;
 
+    @CreationTimestamp
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-    @Column(name = "role")  // Add this if it's missing
-    private String role;
 
-    // Add getter and setter for role
-    public String getRole() {
-        return role;
+    // Helper methods
+    public boolean isAdmin() {
+        return this.roleUser == UserRole.ADMIN;
     }
 
-    public void setRole(String role) {
-        this.role = role;
+    public boolean isPremiumUser() {
+        return this.roleUser == UserRole.PREMIUM_USER;
+    }
+
+    public boolean isRegularUser() {
+        return this.roleUser == UserRole.REGULAR_USER;
     }
 }

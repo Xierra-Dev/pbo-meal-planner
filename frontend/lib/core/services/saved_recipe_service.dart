@@ -6,16 +6,24 @@ import '../models/recipe.dart';
 import 'auth_service.dart';
 
 class SavedRecipeService with ChangeNotifier {
-  final String baseUrl = '${ApiConstants.baseUrl}/saved-recipes';
+  final String baseUrl = '${ApiConstants.baseUrl}/api/saved-recipes';
   final AuthService _authService;
   bool _disposed = false;
   bool _isInitialized = false;
+  String? _token;
 
   final Map<String, Recipe> _savedRecipes = {};
   final Set<String> _savedRecipeIds = {};
   List<Recipe>? _cachedRecipes;
 
   SavedRecipeService(this._authService);
+
+  Future<String?> get token async {
+    if (_token == null) {
+      _token = await _authService.getToken();
+    }
+    return _token;
+  }
 
   @override
   void dispose() {
@@ -63,31 +71,42 @@ class SavedRecipeService with ChangeNotifier {
       final userId = await _authService.getCurrentUserId();
       if (userId == null) throw Exception('User not logged in');
 
+      final currentToken = await token;
+      if (currentToken == null) throw Exception('No authentication token available');
+
       print('Fetching saved recipes for user: $userId');
       final response = await http.get(
         Uri.parse('$baseUrl?userId=$userId'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $currentToken',
+        },
       );
 
       print('Save recipes response: ${response.statusCode}');
       print('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        final recipes = data.map((json) => Recipe.fromJson(json)).toList();
-        
-        if (!_disposed) {
-          _savedRecipes.clear();
-          _savedRecipeIds.clear();
-          for (var recipe in recipes) {
-            _savedRecipes[recipe.id] = recipe;
-            _savedRecipeIds.add(recipe.id);
-          }
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        if (responseData['success'] == true && responseData['data'] != null) {
+          final List<dynamic> recipeData = responseData['data'];
+          final recipes = recipeData.map((json) => Recipe.fromJson(json)).toList();
           
-          _cachedRecipes = recipes;
-          notifyListeners();
+          if (!_disposed) {
+            _savedRecipes.clear();
+            _savedRecipeIds.clear();
+            for (var recipe in recipes) {
+              _savedRecipes[recipe.id] = recipe;
+              _savedRecipeIds.add(recipe.id);
+            }
+            
+            _cachedRecipes = recipes;
+            notifyListeners();
+          }
+          return recipes;
         }
-        return recipes;
+        throw Exception(responseData['message'] ?? 'Unknown error occurred');
       }
       throw Exception('Failed to get saved recipes: ${response.body}');
     } catch (e) {
@@ -105,21 +124,37 @@ class SavedRecipeService with ChangeNotifier {
       final userId = await _authService.getCurrentUserId();
       if (userId == null) throw Exception('User not logged in');
 
+      final currentToken = await token;
+      if (currentToken == null) throw Exception('No authentication token available');
+
       print('Saving recipe: ${recipe.id} for user: $userId');
       
       final response = await http.post(
-        Uri.parse('$baseUrl/${recipe.id}?userId=$userId'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(recipe.toJson()),
+        Uri.parse('$baseUrl/save'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $currentToken',
+        },
+        body: json.encode({
+          'userId': int.parse(userId), // Pastikan userId dikonversi ke integer
+          'recipeId': recipe.id,
+          'recipeDto': recipe.toJson(),
+        }),
       );
 
       if (_disposed) return;
 
       if (response.statusCode == 200) {
-        _savedRecipeIds.add(recipe.id);
-        _savedRecipes[recipe.id] = recipe;
-        _cachedRecipes = null;
-        notifyListeners();
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        if (responseData['success'] == true) {
+          _savedRecipeIds.add(recipe.id);
+          _savedRecipes[recipe.id] = recipe;
+          _cachedRecipes = null;
+          notifyListeners();
+        } else {
+          throw Exception(responseData['message'] ?? 'Failed to save recipe');
+        }
       } else {
         throw Exception('Failed to save recipe: ${response.body}');
       }
@@ -138,11 +173,18 @@ class SavedRecipeService with ChangeNotifier {
       final userId = await _authService.getCurrentUserId();
       if (userId == null) throw Exception('User not logged in');
 
+      final currentToken = await token;
+      if (currentToken == null) throw Exception('No authentication token available');
+
       print('Unsaving recipe: $recipeId for user: $userId');
       
       final response = await http.delete(
-        Uri.parse('$baseUrl/$recipeId?userId=$userId'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse('$baseUrl/unsave?userId=$userId&recipeId=$recipeId'), // Ubah endpoint
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $currentToken',
+        },
       );
 
       if (_disposed) return;

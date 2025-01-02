@@ -16,12 +16,15 @@ class SavedRecipesScreen extends StatefulWidget {
 
 class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
   late Future<List<Recipe>> _savedRecipesFuture;
-  String? _userId;
+  int? _userId;
+
 
   @override
   void initState() {
     super.initState();
+    print('SavedRecipesScreen initialized');
     _refreshSavedRecipes();
+    _loadUserId();
   }
 
   void _refreshSavedRecipes() {
@@ -30,13 +33,19 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
   }
 
   Future<void> _loadUserId() async {
-    final userId = await context.read<AuthService>().getCurrentUserId();
-    if (mounted) {
-      setState(() {
-        _userId = userId;
-      });
+    try {
+      final userIdStr = await context.read<AuthService>().getCurrentUserId();
+      print('Received userId from AuthService: $userIdStr (type: ${userIdStr?.runtimeType})');
+      if (mounted) {
+        setState(() {
+          _userId = userIdStr != null ? int.parse(userIdStr.toString()) : null;
+        });
+      }
+    } catch (e) {
+      print('Error loading userId: $e');
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -253,17 +262,26 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
           ),
         ),
       ),
-      floatingActionButton: Theme(
-        data: Theme.of(context).copyWith(
-          floatingActionButtonTheme: const FloatingActionButtonThemeData(
-            backgroundColor: Colors.purple, // Sesuaikan dengan warna tema aplikasi
-            foregroundColor: Colors.white,
-          ),
-        ),
-        child: ChatFloatingButton(userId: _userId ?? ''),
-      ),  
+      floatingActionButton: Builder(
+        builder: (context) {
+          if (_userId == null) {
+            print('UserId is null, not showing chat button');
+            return const SizedBox.shrink();
+          }
+          return Theme(
+            data: Theme.of(context).copyWith(
+              floatingActionButtonTheme: const FloatingActionButtonThemeData(
+                backgroundColor: Colors.purple,
+                foregroundColor: Colors.white,
+              ),
+            ),
+            child: ChatFloatingButton(userId: _userId!),
+          );
+        },
+      ),
       // Pastikan posisi floating button tetap di kanan bawah
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }
+

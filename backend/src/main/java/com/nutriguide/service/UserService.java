@@ -68,31 +68,51 @@ public class UserService {
     // Update
     @Transactional
     public UserProfileDto updateProfile(Long userId, @Valid UserProfileDto profileDto) {
-        logger.info("Updating profile for user ID: {}", userId);
+        User existingUser = findById(userId);
         
-        User user = findById(userId);
-        
-        // Validate username uniqueness if changed
-        if (!user.getUsername().equals(profileDto.getUsername())) {
-            validateUsernameUnique(profileDto.getUsername());
+        // Validate username uniqueness only if username is being changed
+        if (profileDto.getUsername() != null && 
+            !profileDto.getUsername().equals(existingUser.getUsername())) {
+            // Check if username exists for ANY OTHER user
+            boolean usernameExists = userRepository.findByUsername(profileDto.getUsername())
+                .map(u -> !u.getId().equals(userId))
+                .orElse(false);
+            
+            if (usernameExists) {
+                throw new UserAlreadyExistsException("Username already exists: " + profileDto.getUsername());
+            }
         }
         
-        // Validate email uniqueness if changed
-        if (!user.getEmail().equals(profileDto.getEmail())) {
-            validateEmailUnique(profileDto.getEmail());
+        // Update fields only if they are provided in the request
+        if (profileDto.getUsername() != null && !profileDto.getUsername().trim().isEmpty()) {
+            existingUser.setUsername(profileDto.getUsername().trim());
         }
-
-        // Update user fields
-        user.setFirstName(profileDto.getFirstName());
-        user.setLastName(profileDto.getLastName());
-        user.setUsername(profileDto.getUsername());
-        user.setEmail(profileDto.getEmail());
-        user.setBio(profileDto.getBio());
-        user.setProfilePictureUrl(profileDto.getProfilePictureUrl());
-        user.setUpdatedAt(LocalDateTime.now());
-
-        User updatedUser = userRepository.save(user);
+        if (profileDto.getFirstName() != null) {
+            existingUser.setFirstName(profileDto.getFirstName().trim());
+        }
+        if (profileDto.getLastName() != null) {
+            existingUser.setLastName(profileDto.getLastName().trim());
+        }
+        if (profileDto.getBio() != null) {
+            existingUser.setBio(profileDto.getBio().trim());
+        }
+        
+        existingUser.setUpdatedAt(LocalDateTime.now());
+        User updatedUser = userRepository.save(existingUser);
         return convertToProfileDto(updatedUser);
+    }
+
+    // Update the validation method
+    private void validateUsernameUnique(String username) {
+        if (username == null) {
+            return;
+        }
+        // Use case-insensitive comparison
+        boolean exists = userRepository.findByUsername(username)
+            .isPresent();
+        if (exists) {
+            throw new UserAlreadyExistsException("Username already exists: " + username);
+        }
     }
 
     // Delete
@@ -139,12 +159,6 @@ public class UserService {
     private void validateUniqueConstraints(User user) {
         validateUsernameUnique(user.getUsername());
         validateEmailUnique(user.getEmail());
-    }
-
-    private void validateUsernameUnique(String username) {
-        if (username != null && userRepository.existsByUsername(username)) {
-            throw new UserAlreadyExistsException("Username already exists: " + username);
-        }
     }
 
     private void validateEmailUnique(String email) {

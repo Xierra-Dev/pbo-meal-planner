@@ -5,6 +5,7 @@ import com.nutriguide.dto.LoginRequest;
 import com.nutriguide.dto.RegisterRequest;
 import com.nutriguide.dto.UserProfileDto;
 import com.nutriguide.model.User;
+import com.nutriguide.model.UserRole;
 import com.nutriguide.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,153 +14,102 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
 @Service
-@Transactional
 public class AuthService {
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
-    
+
     @Autowired
     private UserRepository userRepository;
 
-    public ResponseEntity<?> register(RegisterRequest request) {
-        try {
-            logger.info("Processing registration for: {}", request.getUsername());
-            
-            // Validate unique username
-            if (userRepository.existsByUsername(request.getUsername())) {
-                return ResponseEntity.badRequest()
-                    .body(new ApiResponse(false, "Username is already taken"));
-            }
-
-            // Validate unique email
-            if (userRepository.existsByEmail(request.getEmail())) {
-                return ResponseEntity.badRequest()
-                    .body(new ApiResponse(false, "Email is already registered"));
-            }
-
-            // Create new user
-            User user = new User();
-            user.setUsername(request.getUsername());
-            user.setEmail(request.getEmail());
-            user.setPassword(request.getPassword()); // In real app, should encrypt password
-            user.setRole(request.getRole() != null ? request.getRole() : "free user");
-            user.setCreatedAt(LocalDateTime.now());
-            user.setUpdatedAt(LocalDateTime.now());
-
-            User savedUser = userRepository.save(user);
-            logger.info("User registered successfully: {}", savedUser.getUsername(),
-            savedUser.getUsername(), savedUser.getRole());
-
-            // Prepare response
-            Map<String, Object> response = new HashMap<>();
-            response.put("userId", savedUser.getId());
-            response.put("username", savedUser.getUsername());
-            response.put("email", savedUser.getEmail());
-            response.put("role", savedUser.getRole());  // Include role in response
-
-
-          return ResponseEntity.ok(new ApiResponse<Object>(true, "User registered successfully", response));
-
-        } catch (Exception e) {
-            logger.error("Registration error: ", e);
+    @Transactional
+public ResponseEntity<?> register(RegisterRequest request) {
+    try {
+        // Validation
+        if (userRepository.existsByUsername(request.getUsername())) {
             return ResponseEntity.badRequest()
-                .body(new ApiResponse(false, "Registration failed: " + e.getMessage()));
+                .body(new ApiResponse<>(false, "Username already exists"));
         }
-        
+
+        if (userRepository.existsByEmail(request.getEmail())) {
+            return ResponseEntity.badRequest()
+                .body(new ApiResponse<>(false, "Email already exists"));
+        }
+
+        // Create new user with selected account type
+        User user = User.builder()
+            .username(request.getUsername())
+            .email(request.getEmail())
+            .password(request.getPassword())
+            .roleUser(request.getAccountType()) // Use the selected account type
+            .createdAt(LocalDateTime.now())
+            .updatedAt(LocalDateTime.now())
+            .build();
+
+        // Save user
+        user = userRepository.save(user);
+        logger.info("User registered successfully: {} with role: {}", 
+            user.getUsername(), user.getRoleUser());
+
+        // Create response with token
+        Map<String, Object> userData = new HashMap<>();
+        userData.put("id", user.getId());
+        userData.put("username", user.getUsername());
+        userData.put("email", user.getEmail());
+        userData.put("roleUser", user.getRoleUser().getValue());
+        userData.put("token", generateToken(user));
+
+        return ResponseEntity.ok(new ApiResponse<>(true, "Registration successful", userData));
+    } catch (Exception e) {
+        logger.error("Registration error: ", e);
+        return ResponseEntity.badRequest()
+            .body(new ApiResponse<>(false, "Registration failed", e.getMessage()));
     }
+}
 
     public ResponseEntity<?> login(LoginRequest request) {
         try {
-            logger.info("Processing login for: {}", request.getEmail());
-            
-            // Find user by email
             User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElse(null);
 
-            // Simple password check (in real app, should use password encoder)
-            if (!request.getPassword().equals(user.getPassword())) {
+            if (user == null || !request.getPassword().equals(user.getPassword())) {
+                logger.warn("Login failed: Invalid credentials for email: {}", request.getEmail());
                 return ResponseEntity.badRequest()
-                    .body(new ApiResponse(false, "Invalid password"));
+                    .body(new ApiResponse<>(false, "Invalid email or password"));
             }
 
-            // Prepare response
-            Map<String, Object> response = new HashMap<>();
-            response.put("userId", user.getId());
-            response.put("username", user.getUsername());
-            response.put("email", user.getEmail());
-            
-            // Add profile information if available
-            if (user.getFirstName() != null) {
-                response.put("firstName", user.getFirstName());
-            }
-            if (user.getLastName() != null) {
-                response.put("lastName", user.getLastName());
-            }
-            if (user.getProfilePictureUrl() != null) {
-                response.put("profilePictureUrl", user.getProfilePictureUrl());
-            }
+            // Create response with token
+            Map<String, Object> userData = new HashMap<>();
+            userData.put("id", user.getId());
+            userData.put("username", user.getUsername());
+            userData.put("email", user.getEmail());
+            userData.put("roleUser", user.getRoleUser().getValue());
+            userData.put("token", generateToken(user)); // Add simple token
 
             logger.info("User logged in successfully: {}", user.getUsername());
-            return ResponseEntity.ok(new ApiResponse(true, "Login successful", response));
+            return ResponseEntity.ok(new ApiResponse<>(true, "Login successful", userData));
         } catch (Exception e) {
             logger.error("Login error: ", e);
             return ResponseEntity.badRequest()
-                .body(new ApiResponse(false, "Login failed: " + e.getMessage()));
+                .body(new ApiResponse<>(false, "Login failed", e.getMessage()));
         }
     }
 
     public boolean isEmailAvailable(String email) {
-        return !userRepository.existsByEmail(email);
+        boolean isAvailable = !userRepository.existsByEmail(email);
+        logger.debug("Email availability check: {} - {}", email, isAvailable);
+        return isAvailable;
     }
 
     public boolean isUsernameAvailable(String username) {
-        return !userRepository.existsByUsername(username);
-    }
-
-    public UserProfileDto getUserProfile(Long userId) {
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-
-        return UserProfileDto.builder()
-            .id(user.getId())
-            .username(user.getUsername())
-            .email(user.getEmail())
-            .firstName(user.getFirstName())
-            .lastName(user.getLastName())
-            .bio(user.getBio())
-            .profilePictureUrl(user.getProfilePictureUrl())
-            .createdAt(user.getCreatedAt())
-            .updatedAt(user.getUpdatedAt())
-            .build();
-    }
-
-    @Transactional
-    public UserProfileDto updateProfile(Long userId, UserProfileDto profileDto) {
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-
-        // Update fields if provided
-        if (profileDto.getFirstName() != null) {
-            user.setFirstName(profileDto.getFirstName());
-        }
-        if (profileDto.getLastName() != null) {
-            user.setLastName(profileDto.getLastName());
-        }
-        if (profileDto.getBio() != null) {
-            user.setBio(profileDto.getBio());
-        }
-        if (profileDto.getProfilePictureUrl() != null) {
-            user.setProfilePictureUrl(profileDto.getProfilePictureUrl());
-        }
-
-        user.setUpdatedAt(LocalDateTime.now());
-        User updatedUser = userRepository.save(user);
-
-        return convertToProfileDto(updatedUser);
+        boolean isAvailable = !userRepository.existsByUsername(username);
+        logger.debug("Username availability check: {} - {}", username, isAvailable);
+        return isAvailable;
     }
 
     private UserProfileDto convertToProfileDto(User user) {
@@ -174,5 +124,12 @@ public class AuthService {
             .createdAt(user.getCreatedAt())
             .updatedAt(user.getUpdatedAt())
             .build();
+    }
+
+    private String generateToken(User user) {
+        return Base64.getEncoder().encodeToString(
+            (user.getId() + ":" + user.getEmail() + ":" + System.currentTimeMillis())
+                .getBytes(StandardCharsets.UTF_8)
+        );
     }
 }

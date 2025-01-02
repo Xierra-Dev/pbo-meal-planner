@@ -10,6 +10,8 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+import com.nutriguide.model.UserRole;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -27,9 +29,11 @@ public class UserProfileDto {
     @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
     private String username;
 
+    private UserRole roleUser;
+
     @Email(message = "Invalid email format")
     private String email;
-    private String role; // Add the role field if needed
+
     @Size(max = 255, message = "Bio cannot exceed 255 characters")
     private String bio;
 

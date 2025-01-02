@@ -15,6 +15,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late final AuthService _authService;
   String _username = '';
   Map<String, dynamic> _profileData = {};
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -24,24 +25,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadProfileData() async {
-    try {
-      final userId = await _authService.getCurrentUserId();
-      if (userId != null) {
-        final profile = await _authService.getUserProfile(userId);
-        if (mounted) {
-          setState(() {
-            _profileData = profile;
-          });
-        }
-      }
-    } catch (e) {
+  try {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final userId = await _authService.getCurrentUserId();
+    if (userId != null) {
+      final profile = await _authService.getUserProfile(userId);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to load profile data')),
-        );
+        setState(() {
+          _profileData = profile;
+          _isLoading = false;
+        });
       }
+    } else {
+      throw Exception('User ID not found');
+    }
+  } catch (e) {
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to load profile data: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
+}
 
   Future<void> _loadUsername() async {
     final username = await _authService.getUsername();
@@ -266,7 +280,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: const Text('Profile'),
         centerTitle: true,
       ),
-      body: Center(
+      body: _isLoading 
+      ? const Center(child: CircularProgressIndicator()) : 
+      Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
           child: ListView(

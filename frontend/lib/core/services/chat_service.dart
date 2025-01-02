@@ -7,10 +7,9 @@ class ChatService {
 
   ChatService() : _dio = Dio() {
     _dio.options.headers['Content-Type'] = 'application/json';
-    _dio.options.connectTimeout = const Duration(seconds: 5);
-    _dio.options.receiveTimeout = const Duration(seconds: 3);
+    _dio.options.connectTimeout = const Duration(seconds: 30); // Increased timeout
+    _dio.options.receiveTimeout = const Duration(seconds: 30);
     
-    // Add interceptor for logging
     _dio.interceptors.add(LogInterceptor(
       requestBody: true,
       responseBody: true,
@@ -18,8 +17,22 @@ class ChatService {
     ));
   }
 
-  Future<ChatMessage> sendMessage(String userId, String message) async {
+  Future<ChatMessage> sendMessage(int userId, String message) async {
     try {
+      if (userId <= 0) {
+        throw Exception('Invalid userId');
+      }
+
+      // Create user message
+      final userMessage = ChatMessage(
+        id: DateTime.now().toIso8601String(),
+        userId: userId,
+        message: message,
+        response: '',
+        timestamp: DateTime.now(),
+        isUser: true,
+      );
+
       final response = await _dio.post(
         baseUrl,
         data: {
@@ -29,56 +42,69 @@ class ChatService {
       );
 
       if (response.statusCode == 200) {
+        // Create assistant message from response
         return ChatMessage(
           id: response.data['id'].toString(),
-          userId: response.data['userId'],
-          message: response.data['message'],
-          response: response.data['response'],
+          userId: userId,
+          message: message,
+          response: response.data['response'] ?? '',
           timestamp: DateTime.parse(response.data['timestamp']),
           isUser: false,
         );
       } else {
         throw Exception('Server returned ${response.statusCode}');
       }
-    } on DioException catch (e) {
-      print('Dio error: ${e.message}');
-      if (e.type == DioExceptionType.connectionTimeout) {
-        throw Exception('Connection timed out');
-      }
-      throw Exception('Network error: ${e.message}');
     } catch (e) {
       print('Error sending message: $e');
-      throw Exception('Failed to send message: $e');
+      rethrow;
     }
   }
 
-  Future<List<ChatMessage>> getChatHistory(String userId) async {
+  Future<List<ChatMessage>> getChatHistory(int userId) async {
     try {
-      final response = await _dio.get('$baseUrl/history/$userId');
+      if (userId <= 0) {
+        throw Exception('Invalid userId');
+      }
 
+      final response = await _dio.get('$baseUrl/history/$userId');
+      
       if (response.statusCode == 200 && response.data != null) {
-        return (response.data as List)
-            .map((json) => ChatMessage(
-                  id: json['id'].toString(),
-                  userId: json['userId'],
-                  message: json['message'],
-                  response: json['response'],
-                  timestamp: DateTime.parse(json['timestamp']),
-                  isUser: false,
-                ))
-            .toList();
+        final List<dynamic> historyData = response.data as List<dynamic>;
+        
+        // Convert each message to both user message and assistant response
+        List<ChatMessage> messages = [];
+        for (var item in historyData) {
+          // Add user message
+          messages.add(ChatMessage(
+            id: '${item['id']}_user',
+            userId: userId,
+            message: item['message'],
+            response: '',
+            timestamp: DateTime.parse(item['timestamp']),
+            isUser: true,
+          ));
+          
+          // Add assistant response
+          messages.add(ChatMessage(
+            id: item['id'].toString(),
+            userId: userId,
+            message: '',
+            response: item['response'],
+            timestamp: DateTime.parse(item['timestamp']),
+            isUser: false,
+          ));
+        }
+        
+        // Sort messages by timestamp
+        messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+        return messages;
       } else {
         throw Exception('Invalid response from server');
       }
-    } on DioException catch (e) {
-      print('Dio error: ${e.message}');
-      if (e.type == DioExceptionType.connectionTimeout) {
-        throw Exception('Connection timed out');
-      }
-      throw Exception('Network error: ${e.message}');
     } catch (e) {
       print('Error getting chat history: $e');
-      throw Exception('Failed to get chat history: $e');
+      rethrow;
     }
   }
 }
+
