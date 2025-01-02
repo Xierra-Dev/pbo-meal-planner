@@ -20,58 +20,61 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
+
 @Service
 public class AuthService {
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
+    private Long currentUserId;
 
     @Autowired
     private UserRepository userRepository;
 
     @Transactional
-public ResponseEntity<?> register(RegisterRequest request) {
-    try {
-        // Validation
-        if (userRepository.existsByUsername(request.getUsername())) {
+    public ResponseEntity<?> register(RegisterRequest request) {
+        try {
+            // Validation
+            if (userRepository.existsByUsername(request.getUsername())) {
+                return ResponseEntity.badRequest()
+                    .body(new ApiResponse<>(false, "Username already exists"));
+            }
+
+            if (userRepository.existsByEmail(request.getEmail())) {
+                return ResponseEntity.badRequest()
+                    .body(new ApiResponse<>(false, "Email already exists"));
+            }
+
+            // Create new user with selected account type
+            User user = User.builder()
+                .username(request.getUsername())
+                .email(request.getEmail())
+                .password(request.getPassword())
+                .roleUser(request.getAccountType()) // Use the selected account type
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+            // Save user
+            user = userRepository.save(user);
+            logger.info("User registered successfully: {} with role: {}", 
+                user.getUsername(), user.getRoleUser());
+
+            // Create response with token
+            Map<String, Object> userData = new HashMap<>();
+            userData.put("id", user.getId());
+            userData.put("username", user.getUsername());
+            userData.put("email", user.getEmail());
+            userData.put("roleUser", user.getRoleUser().getValue());
+            userData.put("token", generateToken(user));
+
+            return ResponseEntity.ok(new ApiResponse<>(true, "Registration successful", userData));
+        } catch (Exception e) {
+            logger.error("Registration error: ", e);
             return ResponseEntity.badRequest()
-                .body(new ApiResponse<>(false, "Username already exists"));
+                .body(new ApiResponse<>(false, "Registration failed", e.getMessage()));
         }
-
-        if (userRepository.existsByEmail(request.getEmail())) {
-            return ResponseEntity.badRequest()
-                .body(new ApiResponse<>(false, "Email already exists"));
-        }
-
-        // Create new user with selected account type
-        User user = User.builder()
-            .username(request.getUsername())
-            .email(request.getEmail())
-            .password(request.getPassword())
-            .roleUser(request.getAccountType()) // Use the selected account type
-            .createdAt(LocalDateTime.now())
-            .updatedAt(LocalDateTime.now())
-            .build();
-
-        // Save user
-        user = userRepository.save(user);
-        logger.info("User registered successfully: {} with role: {}", 
-            user.getUsername(), user.getRoleUser());
-
-        // Create response with token
-        Map<String, Object> userData = new HashMap<>();
-        userData.put("id", user.getId());
-        userData.put("username", user.getUsername());
-        userData.put("email", user.getEmail());
-        userData.put("roleUser", user.getRoleUser().getValue());
-        userData.put("token", generateToken(user));
-
-        return ResponseEntity.ok(new ApiResponse<>(true, "Registration successful", userData));
-    } catch (Exception e) {
-        logger.error("Registration error: ", e);
-        return ResponseEntity.badRequest()
-            .body(new ApiResponse<>(false, "Registration failed", e.getMessage()));
+        
     }
-}
-
+    
     public ResponseEntity<?> login(LoginRequest request) {
         try {
             User user = userRepository.findByEmail(request.getEmail())
@@ -131,5 +134,24 @@ public ResponseEntity<?> register(RegisterRequest request) {
             (user.getId() + ":" + user.getEmail() + ":" + System.currentTimeMillis())
                 .getBytes(StandardCharsets.UTF_8)
         );
+    }
+
+    public User getCurrentUser() {
+        if (currentUserId == null) {
+            return null;
+        }
+        return userRepository.findById(currentUserId).orElse(null);
+    }
+
+    // Method untuk get role
+    public String getCurrentUserRole() {
+        User currentUser = getCurrentUser();
+        return currentUser != null ? currentUser.getRoleUser().getValue() : null;
+    }
+
+    // Method untuk cek premium
+    public boolean isCurrentUserPremium() {
+        String role = getCurrentUserRole();
+        return role != null && role.equals(UserRole.PREMIUM_USER.getValue());
     }
 }

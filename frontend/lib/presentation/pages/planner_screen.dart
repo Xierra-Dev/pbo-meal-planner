@@ -20,38 +20,44 @@ class PlannerScreen extends StatefulWidget {
 class _PlannerScreenState extends State<PlannerScreen> {
   DateTime _selectedDate = DateTime.now();
   bool _isLoading = true;
+  final bool _isPremiumUser = false;
   int? _userId;
+  String? _currentRole;
   String? _error;
   Map<DateTime, List<Planner>> _plannedMeals = {};
 
   @override
   void initState() {
     super.initState();
+    print('PlannerScreen initialized');
     _loadInitialData();
+    _loadUserData();
   }
 
   Future<void> _loadInitialData() async {
-    await _loadUserId();
+    await _loadUserData();
     if (mounted) {
       await _loadPlannedMeals();
     }
   }
 
-  Future<void> _loadUserId() async {
+  Future<void> _loadUserData() async {
     try {
-      final userIdStr = await context.read<AuthService>().getCurrentUserId();
-      if (mounted && userIdStr != null) {
+      final authService = context.read<AuthService>();
+      final userIdStr = await authService.getCurrentUserId();
+      final currentRole = await authService.getCurrentUserRole();
+
+      print('Received userId from AuthService: $currentRole' );
+      print('Received userId from AuthService: $userIdStr (type: ${userIdStr?.runtimeType})');
+      
+      if (mounted) {
         setState(() {
-          _userId = int.parse(userIdStr);
+          _userId = userIdStr != null ? int.parse(userIdStr.toString()) : null;
+          _currentRole = currentRole;
         });
       }
     } catch (e) {
-      print('Error loading userId: $e');
-      if (mounted) {
-        setState(() {
-          _error = 'Failed to load user ID: $e';
-        });
-      }
+      print('Error loading user data: $e');
     }
   }
 
@@ -230,16 +236,25 @@ class _PlannerScreenState extends State<PlannerScreen> {
           ),
         ),
       ),
-      floatingActionButton: Theme(
-        data: Theme.of(context).copyWith(
-          floatingActionButtonTheme: const FloatingActionButtonThemeData(
-            backgroundColor: Colors.purple,
-            foregroundColor: Colors.white,
-          ),
-        ),
-        child: _userId != null
-            ? ChatFloatingButton(userId: _userId!)
-            : const SizedBox(),
+      floatingActionButton: Builder(
+        builder: (context) {
+          if (_userId == null) {
+            print('UserId is null, not showing chat button');
+            return const SizedBox.shrink();
+          }
+          return Theme(
+            data: Theme.of(context).copyWith(
+              floatingActionButtonTheme: const FloatingActionButtonThemeData(
+                backgroundColor: Colors.purple,
+                foregroundColor: Colors.white,
+              ),
+            ),
+            child: ChatFloatingButton(
+              userId: _userId!,
+              currentRole: _currentRole!,
+            ),
+          );
+        },
       ),
     );
   }

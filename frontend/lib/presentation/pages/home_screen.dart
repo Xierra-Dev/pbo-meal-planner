@@ -25,6 +25,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   int? _userId;
+  String? _currentRole;
 
   final List<Widget> _screens = [
     const HomeContent(),
@@ -35,20 +36,29 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void initState() {
     super.initState();
-    _loadUserId();
+    print('HomeScreen initialized');
+    _loadUserData();
   }
 
-  Future<void> _loadUserId() async {
+  
+
+  Future<void> _loadUserData() async {
     try {
-      final userIdStr = await context.read<AuthService>().getCurrentUserId();
+      final authService = context.read<AuthService>();
+      final userIdStr = await authService.getCurrentUserId();
+      final currentRole = await authService.getCurrentUserRole();
+
+      print('Received userId from AuthService: $currentRole' );
       print('Received userId from AuthService: $userIdStr (type: ${userIdStr?.runtimeType})');
+      
       if (mounted) {
         setState(() {
           _userId = userIdStr != null ? int.parse(userIdStr.toString()) : null;
+          _currentRole = currentRole;
         });
       }
     } catch (e) {
-      print('Error loading userId: $e');
+      print('Error loading user data: $e');
     }
   }
 
@@ -336,12 +346,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 foregroundColor: Colors.white,
               ),
             ),
-            child: ChatFloatingButton(userId: _userId!),
+            child: ChatFloatingButton(
+              userId: _userId!,
+              currentRole: _currentRole!,
+            ),
           );
         },
       ),
-      // Pastikan posisi floating button tetap di kanan bawah
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }

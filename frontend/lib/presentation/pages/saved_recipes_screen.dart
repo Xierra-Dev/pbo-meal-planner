@@ -17,6 +17,8 @@ class SavedRecipesScreen extends StatefulWidget {
 class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
   late Future<List<Recipe>> _savedRecipesFuture;
   int? _userId;
+  String? _currentRole;
+  final bool _isPremiumUser = false;
 
 
   @override
@@ -24,7 +26,7 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
     super.initState();
     print('SavedRecipesScreen initialized');
     _refreshSavedRecipes();
-    _loadUserId();
+    _loadUserData();
   }
 
   void _refreshSavedRecipes() {
@@ -32,20 +34,25 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
     _savedRecipesFuture = savedRecipeService.getSavedRecipes();
   }
 
-  Future<void> _loadUserId() async {
+  Future<void> _loadUserData() async {
     try {
-      final userIdStr = await context.read<AuthService>().getCurrentUserId();
+      final authService = context.read<AuthService>();
+      final userIdStr = await authService.getCurrentUserId();
+      final currentRole = await authService.getCurrentUserRole();
+
+      print('Received userId from AuthService: $currentRole' );
       print('Received userId from AuthService: $userIdStr (type: ${userIdStr?.runtimeType})');
+      
       if (mounted) {
         setState(() {
           _userId = userIdStr != null ? int.parse(userIdStr.toString()) : null;
+          _currentRole = currentRole;
         });
       }
     } catch (e) {
-      print('Error loading userId: $e');
+      print('Error loading user data: $e');
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -275,13 +282,13 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
                 foregroundColor: Colors.white,
               ),
             ),
-            child: ChatFloatingButton(userId: _userId!),
+            child: ChatFloatingButton(
+              userId: _userId!,
+              currentRole: _currentRole!,
+            ),
           );
         },
       ),
-      // Pastikan posisi floating button tetap di kanan bawah
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }
-

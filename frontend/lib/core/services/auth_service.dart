@@ -74,6 +74,16 @@ class AuthService with ChangeNotifier {
     return _email;
   }
 
+  Future<String?> getCurrentUserRole() async {
+    await isInitialized;
+    return _roleUser;
+  }
+
+  Future<bool> isCurrentUserPremium() async {
+    final role = await getCurrentUserRole();
+    return role == 'premium_user';
+  }
+
   Future<void> login(String email, String password) async {
     try {
       _isLoading = true;

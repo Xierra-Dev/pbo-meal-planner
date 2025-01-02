@@ -3,8 +3,13 @@ import '../pages/chat_screen.dart';
 
 class ChatFloatingButton extends StatelessWidget {
   final int userId;
+  final String currentRole;
 
-  const ChatFloatingButton({Key? key, required this.userId}) : super(key: key);
+  const ChatFloatingButton({
+    Key? key,
+    required this.userId,
+    required this.currentRole,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -40,12 +45,11 @@ class ChatFloatingButton extends StatelessWidget {
                 ),
               );
             },
-            child: Icon(Icons.chat),
-            backgroundColor: Colors.blue,
+            child: const Icon(Icons.chat),
+            backgroundColor: currentRole == 'premium_user' ? Colors.blue : Colors.grey,
           ),
         ),
       ],
     );
   }
 }
-

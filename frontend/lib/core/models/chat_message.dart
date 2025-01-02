@@ -36,4 +36,3 @@ class ChatMessage {
     'isUser': isUser,
   };
 }
-
