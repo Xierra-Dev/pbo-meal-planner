@@ -7,6 +7,7 @@ import '../../core/services/profile_service.dart';
 import '../widgets/meal_card.dart';
 import '../widgets/loading_indicator.dart';
 import '../widgets/error_view.dart';
+import '../widgets/chat_floating_button.dart';
 
 class PlannerScreen extends StatefulWidget {
   const PlannerScreen({super.key});
@@ -19,6 +20,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
   DateTime _selectedDate = DateTime.now();
   bool _isLoading = true;
   String? _error;
+  String? _userId;
   Map<DateTime, List<Planner>> _plannedMeals = {};
 
   @override
@@ -38,7 +40,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
     try {
       final startDate = _selectedDate.subtract(const Duration(days: 7));
       final endDate = _selectedDate.add(const Duration(days: 7));
-      
+
       final plannedMeals = await context
           .read<PlannerService>()
           .getPlannedMeals(startDate, endDate);
@@ -50,7 +52,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
           meal.plannedDate.month,
           meal.plannedDate.day,
         );
-        
+
         if (!groupedMeals.containsKey(date)) {
           groupedMeals[date] = [];
         }
@@ -130,7 +132,8 @@ class _PlannerScreenState extends State<PlannerScreen> {
                             icon: const Icon(Icons.chevron_left),
                             onPressed: () {
                               setState(() {
-                                _selectedDate = _selectedDate.subtract(const Duration(days: 7));
+                                _selectedDate = _selectedDate
+                                    .subtract(const Duration(days: 7));
                               });
                               _loadPlannedMeals();
                             },
@@ -146,7 +149,8 @@ class _PlannerScreenState extends State<PlannerScreen> {
                             icon: const Icon(Icons.chevron_right),
                             onPressed: () {
                               setState(() {
-                                _selectedDate = _selectedDate.add(const Duration(days: 7));
+                                _selectedDate =
+                                    _selectedDate.add(const Duration(days: 7));
                               });
                               _loadPlannedMeals();
                             },
@@ -184,6 +188,18 @@ class _PlannerScreenState extends State<PlannerScreen> {
           ),
         ),
       ),
+      floatingActionButton: Theme(
+        data: Theme.of(context).copyWith(
+          floatingActionButtonTheme: const FloatingActionButtonThemeData(
+            backgroundColor:
+                Colors.purple, // Sesuaikan dengan warna tema aplikasi
+            foregroundColor: Colors.white,
+          ),
+        ),
+        child: ChatFloatingButton(userId: _userId ?? ''),
+      ),
+      // Pastikan posisi floating button tetap di kanan bawah
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 
@@ -192,7 +208,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
     final isToday = date.year == DateTime.now().year &&
         date.month == DateTime.now().month &&
         date.day == DateTime.now().day;
-    
+
     final ScrollController scrollController = ScrollController();
 
     void scroll(double offset) {
@@ -232,8 +248,8 @@ class _PlannerScreenState extends State<PlannerScreen> {
                 Text(
                   DateFormat('EEEE, MMMM d').format(date),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: isToday ? FontWeight.bold : null,
-                  ),
+                        fontWeight: isToday ? FontWeight.bold : null,
+                      ),
                 ),
                 if (isToday) ...[
                   const SizedBox(width: 8),
@@ -281,75 +297,92 @@ class _PlannerScreenState extends State<PlannerScreen> {
                     scrollDirection: Axis.horizontal,
                     physics: const BouncingScrollPhysics(),
                     child: Row(
-                      children: meals.map((meal) => Padding(
-                        padding: const EdgeInsets.only(right: 16),
-                        child: SizedBox(
-                          width: 300,
-                          child: MealCard(
-                            meal: meal,
-                            onDelete: () => _deletePlannedMeal(meal),
-                            onToggleComplete: (meal) async {
-                              try {
-                                // Jika meal sudah completed, kita akan un-complete
-                                if (meal.isCompleted) {
-                                  await context.read<PlannerService>().toggleMealCompletion(meal);
-                                  
-                                  if (meal.isToday && context.mounted) {
-                                    // Kurangi nutrisi karena meal di-uncomplete
-                                    context.read<ProfileService>().updateTodayNutrition(
-                                      meal.recipe.nutritionInfo,
-                                      false, // false untuk mengurangi nutrisi
-                                    );
-                                  }
-                                } else {
-                                  // Jika meal belum completed
-                                  await context.read<PlannerService>().toggleMealCompletion(meal);
-                                  
-                                  if (meal.isToday && context.mounted) {
-                                    // Tambah nutrisi karena meal completed
-                                    context.read<ProfileService>().updateTodayNutrition(
-                                      meal.recipe.nutritionInfo,
-                                      true, // true untuk menambah nutrisi
-                                    );
-                                  }
-                                }
-                                
-                                _loadPlannedMeals();
+                      children: meals
+                          .map((meal) => Padding(
+                                padding: const EdgeInsets.only(right: 16),
+                                child: SizedBox(
+                                  width: 300,
+                                  child: MealCard(
+                                    meal: meal,
+                                    onDelete: () => _deletePlannedMeal(meal),
+                                    onToggleComplete: (meal) async {
+                                      try {
+                                        // Jika meal sudah completed, kita akan un-complete
+                                        if (meal.isCompleted) {
+                                          await context
+                                              .read<PlannerService>()
+                                              .toggleMealCompletion(meal);
 
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        meal.isCompleted ? 'Meal marked as incomplete' : 'Meal marked as complete'
-                                      ),
-                                      backgroundColor: Colors.green,
-                                      behavior: SnackBarBehavior.floating,
-                                      margin: const EdgeInsets.all(16),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                    ),
-                                  );
-                                }
-                              } catch (e) {
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Failed to update meal status: $e'),
-                                      backgroundColor: Colors.red,
-                                      behavior: SnackBarBehavior.floating,
-                                      margin: const EdgeInsets.all(16),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                    ),
-                                  );
-                                }
-                              }
-                            },
-                          ),
-                        ),
-                      )).toList(),
+                                          if (meal.isToday && context.mounted) {
+                                            // Kurangi nutrisi karena meal di-uncomplete
+                                            context
+                                                .read<ProfileService>()
+                                                .updateTodayNutrition(
+                                                  meal.recipe.nutritionInfo,
+                                                  false, // false untuk mengurangi nutrisi
+                                                );
+                                          }
+                                        } else {
+                                          // Jika meal belum completed
+                                          await context
+                                              .read<PlannerService>()
+                                              .toggleMealCompletion(meal);
+
+                                          if (meal.isToday && context.mounted) {
+                                            // Tambah nutrisi karena meal completed
+                                            context
+                                                .read<ProfileService>()
+                                                .updateTodayNutrition(
+                                                  meal.recipe.nutritionInfo,
+                                                  true, // true untuk menambah nutrisi
+                                                );
+                                          }
+                                        }
+
+                                        _loadPlannedMeals();
+
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text(meal.isCompleted
+                                                  ? 'Meal marked as incomplete'
+                                                  : 'Meal marked as complete'),
+                                              backgroundColor: Colors.green,
+                                              behavior:
+                                                  SnackBarBehavior.floating,
+                                              margin: const EdgeInsets.all(16),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      } catch (e) {
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                  'Failed to update meal status: $e'),
+                                              backgroundColor: Colors.red,
+                                              behavior:
+                                                  SnackBarBehavior.floating,
+                                              margin: const EdgeInsets.all(16),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ))
+                          .toList(),
                     ),
                   ),
                 ),
