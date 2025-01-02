@@ -39,64 +39,57 @@ class PlannerService with ChangeNotifier {
       
       print('Fetching planned meals: userId=$userId, startDate=$startDateStr, endDate=$endDateStr');
 
+      // Updated endpoint to match backend
       final response = await _apiService.get(
-        'planner?userId=$userId&startDate=$startDateStr&endDate=$endDateStr'
+        'api/planner/list?userId=$userId&startDate=$startDateStr&endDate=$endDateStr'
       );
       
       print('Planner API Response: $response');
 
       if (response == null) return [];
       
-      // Handle ApiResponse wrapper
       final apiResponse = response as Map<String, dynamic>;
       if (!apiResponse['success']) {
-        throw Exception(apiResponse['message']);
+        throw Exception(apiResponse['message'] ?? 'Failed to load data');
       }
       
       final data = apiResponse['data'] as List;
-      final meals = data.map((json) => Planner.fromJson(json)).toList();
-      
-      print('Parsed ${meals.length} planned meals');
-      
-      return meals;
+      return data.map((json) => Planner.fromJson(json)).toList();
     } catch (e) {
       print('Error fetching planned meals: $e');
-      return [];
+      rethrow; // Rethrow to handle in UI
     }
   }
 
-  Future<void> addToPlan(String recipeId, DateTime plannedDate, Recipe recipe) async {
-    try {
-      await _authService.isInitialized;
-      
-      final userId = await _authService.getCurrentUserId();
-      if (userId == null) throw Exception('User not logged in');
-      
-      final formattedDate = plannedDate.toIso8601String().split('T')[0];
-      
-      print('Recipe data being sent: ${recipe.toJson()}');
-      
-      final response = await _apiService.post(
-        'planner?userId=$userId&recipeId=$recipeId&plannedDate=$formattedDate',
-        {
-          'recipe': recipe.toJson()
+   Future<void> addToPlan(String recipeId, DateTime plannedDate, Recipe recipe) async {
+        try {
+            await _authService.isInitialized;
+            
+            final userId = await _authService.getCurrentUserId();
+            if (userId == null) throw Exception('User not logged in');
+            
+            final formattedDate = plannedDate.toIso8601String().split('T')[0];
+            
+            // Updated endpoint to match backend
+            final response = await _apiService.post(
+                'api/planner/add?userId=$userId&recipeId=$recipeId&plannedDate=$formattedDate',
+                {
+                    'recipe': recipe.toJson()
+                }
+            );
+            
+            if (response == null) {
+                throw Exception('Failed to add recipe to plan');
+            }
+            
+            if (!_disposed) {
+                notifyListeners();
+            }
+        } catch (e) {
+            print('Error adding to plan: $e');
+            rethrow;
         }
-      );
-      
-      print('Add to plan response: $response');
-      
-      if (response == null) {
-        throw Exception('Failed to add recipe to plan');
-      }
-      
-      if (!_disposed) {
-        notifyListeners();
-      }
-    } catch (e) {
-      print('Error adding to plan: $e');
-      rethrow;
     }
-  }
 
   Future<void> removePlannedMeal(Planner meal) async {
     try {
@@ -105,7 +98,8 @@ class PlannerService with ChangeNotifier {
       final userId = await _authService.getCurrentUserId();
       if (userId == null) throw Exception('User not logged in');
 
-      await _apiService.delete('planner/${meal.id}?userId=$userId');
+      // Add /api prefix to the URL
+      await _apiService.delete('api/planner/${meal.id}?userId=$userId');
       
       if (!_disposed) {
         notifyListeners();
@@ -129,7 +123,7 @@ class PlannerService with ChangeNotifier {
 
       // Remove duplicate /api/ prefix
       final response = await _apiService.patch(
-        'planner/${meal.id}/toggle-completion?userId=$userId&completed=${!meal.isCompleted}',
+        'api/planner/${meal.id}/toggle-completion?userId=$userId&completed=${!meal.isCompleted}',
         {} // empty body
       );
       

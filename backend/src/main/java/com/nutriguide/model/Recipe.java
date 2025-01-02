@@ -7,7 +7,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Entity
 @Table(name = "recipes")
@@ -53,6 +55,29 @@ public class Recipe {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Column(name = "health_score")
+    private Integer healthScore;
+
+    @Column(columnDefinition = "TEXT")
+    private String nutritionInfo;
+
+    // Add getters and setters for new fields
+    public Integer getHealthScore() {
+        return healthScore;
+    }
+
+    public void setHealthScore(Integer healthScore) {
+        this.healthScore = healthScore;
+    }
+
+    public String getNutritionInfo() {
+        return nutritionInfo;
+    }
+
+    public void setNutritionInfo(String nutritionInfo) {
+        this.nutritionInfo = nutritionInfo;
+    }
 
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SavedRecipe> savedRecipes = new ArrayList<>();
@@ -147,6 +172,28 @@ public class Recipe {
         } catch (Exception e) {
             e.printStackTrace();
             this.measures = "[]";
+        }
+    }
+
+    public Map<String, Object> getNutritionInfoMap() {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            if (nutritionInfo != null && !nutritionInfo.isEmpty()) {
+                return mapper.readValue(nutritionInfo, new TypeReference<Map<String, Object>>() {});
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new HashMap<>();
+    }
+
+    public void setNutritionInfoMap(Map<String, Object> nutritionInfoMap) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            this.nutritionInfo = mapper.writeValueAsString(nutritionInfoMap);
+        } catch (Exception e) {
+            e.printStackTrace();
+            this.nutritionInfo = "{}";
         }
     }
 }
