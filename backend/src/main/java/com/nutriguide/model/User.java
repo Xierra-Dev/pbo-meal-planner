@@ -45,4 +45,15 @@ public class User {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+    @Column(name = "role")  // Add this if it's missing
+    private String role;
+
+    // Add getter and setter for role
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
 }

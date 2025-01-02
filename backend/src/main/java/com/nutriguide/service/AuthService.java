@@ -21,7 +21,7 @@ import java.util.Map;
 @Transactional
 public class AuthService {
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
-
+    
     @Autowired
     private UserRepository userRepository;
 
@@ -46,24 +46,30 @@ public class AuthService {
             user.setUsername(request.getUsername());
             user.setEmail(request.getEmail());
             user.setPassword(request.getPassword()); // In real app, should encrypt password
+            user.setRole(request.getRole() != null ? request.getRole() : "free user");
             user.setCreatedAt(LocalDateTime.now());
             user.setUpdatedAt(LocalDateTime.now());
 
             User savedUser = userRepository.save(user);
-            logger.info("User registered successfully: {}", savedUser.getUsername());
+            logger.info("User registered successfully: {}", savedUser.getUsername(),
+            savedUser.getUsername(), savedUser.getRole());
 
             // Prepare response
             Map<String, Object> response = new HashMap<>();
             response.put("userId", savedUser.getId());
             response.put("username", savedUser.getUsername());
             response.put("email", savedUser.getEmail());
+            response.put("role", savedUser.getRole());  // Include role in response
 
-            return ResponseEntity.ok(new ApiResponse(true, "User registered successfully", response));
+
+          return ResponseEntity.ok(new ApiResponse<Object>(true, "User registered successfully", response));
+
         } catch (Exception e) {
             logger.error("Registration error: ", e);
             return ResponseEntity.badRequest()
                 .body(new ApiResponse(false, "Registration failed: " + e.getMessage()));
         }
+        
     }
 
     public ResponseEntity<?> login(LoginRequest request) {

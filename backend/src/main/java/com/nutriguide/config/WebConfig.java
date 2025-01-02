@@ -14,4 +14,5 @@ public class WebConfig implements WebMvcConfigurer {
             .allowedHeaders("*")
             .allowCredentials(false); // Ubah ke false
     }
+    
 }

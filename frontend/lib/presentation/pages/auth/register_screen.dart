@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../../../../core/services/auth_service.dart';
 import 'login_screen.dart';
 import '../../widgets/requirement_item.dart';
@@ -21,18 +22,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _cardNumberController = TextEditingController();
+  final _cvvController = TextEditingController();
+
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _has8Characters = false;
   bool _hasNumber = false;
   bool _hasSymbol = false;
+  String _selectedRole = 'free user'; // Update 1
+  bool _showPaymentForm = false;
 
   final AuthService _authService = AuthService();
 
-  // Di dalam _handleRegister()
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_selectedRole == 'premium' &&
+        (_cardNumberController.text.isEmpty || _cvvController.text.isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please complete payment details')),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
 
@@ -41,10 +53,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _usernameController.text.trim(),
         _emailController.text.trim(),
         _passwordController.text,
+        role: _selectedRole == 'free user'
+            ? 'free user'
+            : (_selectedRole == 'premium' ? 'premium' : 'nutritionist'),
       );
 
       if (mounted) {
-        // Show success dialog
         await showDialog(
           context: context,
           barrierDismissible: false,
@@ -62,43 +76,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Success Animation
                     SizedBox(
                       width: 150,
                       height: 150,
                       child: Lottie.asset(
                         'assets/animations/success.json',
-                        repeat: true, // Set to true untuk looping
+                        repeat: true,
                         animate: true,
                       ),
                     ),
                     const SizedBox(height: 24),
-                    
-                    // Success Title with Animation
-                    TweenAnimationBuilder(
-                      duration: const Duration(milliseconds: 800),
-                      tween: Tween<double>(begin: 0, end: 1),
-                      builder: (context, double value, child) {
-                        return Opacity(
-                          opacity: value,
-                          child: Transform.translate(
-                            offset: Offset(0, 20 * (1 - value)),
-                            child: child,
-                          ),
-                        );
-                      },
-                      child: const Text(
-                        'Registration Successful!',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // Success Message with Animation
                     TweenAnimationBuilder(
                       duration: const Duration(milliseconds: 800),
                       tween: Tween<double>(begin: 0, end: 1),
@@ -112,7 +99,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         );
                       },
                       child: Text(
-                        'Welcome to NutriGuide, ${_usernameController.text}!\nYour account has been created successfully.',
+                        'Registration Successful!${_selectedRole == 'premium' ? '\nPayment Processed!' : ''}',
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TweenAnimationBuilder(
+                      duration: const Duration(milliseconds: 800),
+                      tween: Tween<double>(begin: 0, end: 1),
+                      builder: (context, double value, child) {
+                        return Opacity(
+                          opacity: value,
+                          child: Transform.translate(
+                            offset: Offset(0, 20 * (1 - value)),
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: Text(
+                        'Welcome to NutriGuide, ${_usernameController.text}!\nYour ${_selectedRole.toUpperCase()} account has been created successfully.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 16,
@@ -121,8 +131,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    
-                    // Continue Button with Animation
                     TweenAnimationBuilder(
                       duration: const Duration(milliseconds: 800),
                       tween: Tween<double>(begin: 0, end: 1),
@@ -134,7 +142,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       },
                       child: ElevatedButton(
                         onPressed: () {
-                          Navigator.pop(context); // Close dialog
+                          Navigator.pop(context);
                           NavigationHelper.navigateToPage(
                             context,
                             const LoginScreen(),
@@ -190,7 +198,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
     } catch (e) {
       if (mounted) {
-        // Show error dialog
         showDialog(
           context: context,
           builder: (BuildContext context) {
@@ -207,7 +214,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Error Icon
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -221,8 +227,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    
-                    // Error Title
                     const Text(
                       'Registration Failed',
                       style: TextStyle(
@@ -232,8 +236,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    
-                    // Error Message
                     Text(
                       e.toString(),
                       textAlign: TextAlign.center,
@@ -243,8 +245,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    
-                    // Try Again Button
                     TextButton(
                       onPressed: () => Navigator.pop(context),
                       child: const Text(
@@ -281,15 +281,125 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _cardNumberController.dispose();
+    _cvvController.dispose();
     super.dispose();
   }
 
-    @override
+  Widget _buildRoleSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Select Account Type:',
+          style: TextStyle(fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              RadioListTile<String>(
+                // Update 2
+                title: const Text('Free User'),
+                subtitle: const Text('Basic features and recipes'),
+                value: 'free user',
+                groupValue: _selectedRole,
+                onChanged: (value) => setState(() {
+                  _selectedRole = value!;
+                  _showPaymentForm = false;
+                }),
+              ),
+              RadioListTile<String>(
+                // Update 2
+                title: const Text('Premium User (\$5/month)'),
+                subtitle: const Text('Access chatbot'),
+                value: 'premium',
+                groupValue: _selectedRole,
+                onChanged: (value) => setState(() {
+                  _selectedRole = value!;
+                  _showPaymentForm = true;
+                }),
+              ),
+              RadioListTile<String>(
+                title: const Text('Nutritionist'),
+                subtitle: const Text('Professional account as editor'),
+                value: 'nutritionist',
+                groupValue: _selectedRole,
+                onChanged: (value) => setState(() {
+                  _selectedRole = value!;
+                  _showPaymentForm = false;
+                }),
+              ),
+            ],
+          ),
+        ),
+        if (_showPaymentForm) ...[
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _cardNumberController,
+            decoration: InputDecoration(
+              labelText: 'Card Number',
+              hintText: 'XXXX-XXXX-XXXX-XXXX',
+              prefixIcon: const Icon(Icons.credit_card),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              filled: true,
+              fillColor: Colors.grey[50],
+            ),
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(16),
+              _CardNumberFormatter(),
+            ],
+            keyboardType: TextInputType.number,
+            validator: (value) {
+              if (_selectedRole == 'premium' &&
+                  (value == null || value.isEmpty)) {
+                return 'Please enter card number';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _cvvController,
+            decoration: InputDecoration(
+              labelText: 'CVV',
+              hintText: 'XXX',
+              prefixIcon: const Icon(Icons.security),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              filled: true,
+              fillColor: Colors.grey[50],
+            ),
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(3),
+            ],
+            keyboardType: TextInputType.number,
+            obscureText: true,
+            validator: (value) {
+              if (_selectedRole == 'premium' &&
+                  (value == null || value.isEmpty)) {
+                return 'Please enter CVV';
+              }
+              return null;
+            },
+          ),
+        ],
+      ],
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          // Background Image dengan Blur
           Container(
             decoration: BoxDecoration(
               image: DecorationImage(
@@ -308,8 +418,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
           ),
-
-          // Di dalam Stack setelah background blur
           Positioned(
             top: 24,
             left: 24,
@@ -341,7 +449,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         color: Colors.transparent,
                         child: InkWell(
                           onTap: () => Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(builder: (_) => const LandingScreen()),
+                            MaterialPageRoute(
+                                builder: (_) => const LandingScreen()),
                           ),
                           borderRadius: BorderRadius.circular(12),
                           hoverColor: Colors.white.withOpacity(0.1),
@@ -379,8 +488,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
           ),
-
-          // Content
           Center(
             child: SingleChildScrollView(
               child: Container(
@@ -388,7 +495,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 padding: const EdgeInsets.all(32.0),
                 child: Row(
                   children: [
-                    // Left Side - Image/Illustration
                     Expanded(
                       child: Container(
                         padding: const EdgeInsets.all(32.0),
@@ -402,26 +508,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             const SizedBox(height: 32),
                             Text(
                               'Join Our Culinary Community',
-                              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .headlineMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
                               textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 16),
                             Text(
                               'Discover, save, and share amazing recipes with food lovers around the world',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: Colors.white,
-                              ),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(
+                                    color: Colors.white,
+                                  ),
                               textAlign: TextAlign.center,
                             ),
                           ],
                         ),
                       ),
                     ),
-
-                    // Right Side - Registration Form
                     Expanded(
                       child: Card(
                         elevation: 4,
@@ -436,7 +546,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                // Header
                                 Icon(
                                   Icons.restaurant_menu,
                                   size: 64,
@@ -445,20 +554,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 const SizedBox(height: 16),
                                 Text(
                                   'Create Account',
-                                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineSmall
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                   textAlign: TextAlign.center,
                                 ),
                                 const SizedBox(height: 32),
-
-                                // Username Field
                                 TextFormField(
                                   controller: _usernameController,
                                   decoration: InputDecoration(
                                     labelText: 'Username',
                                     hintText: 'Choose a unique username',
-                                    prefixIcon: const Icon(Icons.person_outline),
+                                    prefixIcon:
+                                        const Icon(Icons.person_outline),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
@@ -473,15 +584,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   },
                                 ),
                                 const SizedBox(height: 16),
-
-                                // Email Field
                                 TextFormField(
                                   controller: _emailController,
                                   keyboardType: TextInputType.emailAddress,
                                   decoration: InputDecoration(
                                     labelText: 'Email',
                                     hintText: 'Enter your email address',
-                                    prefixIcon: const Icon(Icons.email_outlined),
+                                    prefixIcon:
+                                        const Icon(Icons.email_outlined),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
@@ -499,8 +609,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   },
                                 ),
                                 const SizedBox(height: 16),
-
-                                // Password Field
+                                _buildRoleSelector(),
+                                const SizedBox(height: 16),
                                 TextFormField(
                                   controller: _passwordController,
                                   obscureText: _obscurePassword,
@@ -516,7 +626,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     fillColor: Colors.grey[50],
                                     suffixIcon: IconButton(
                                       icon: Icon(
-                                        _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                                        _obscurePassword
+                                            ? Icons.visibility
+                                            : Icons.visibility_off,
                                       ),
                                       onPressed: () {
                                         setState(() {
@@ -529,15 +641,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     if (value == null || value.isEmpty) {
                                       return 'Please enter a password';
                                     }
-                                    if (!_has8Characters || !_hasNumber || !_hasSymbol) {
+                                    if (!_has8Characters ||
+                                        !_hasNumber ||
+                                        !_hasSymbol) {
                                       return 'Please meet all password requirements';
                                     }
                                     return null;
                                   },
                                 ),
                                 const SizedBox(height: 8),
-
-                                // Password Requirements
                                 Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
@@ -545,7 +657,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       const Text(
                                         'Password Requirements:',
@@ -573,8 +686,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 16),
-
-                                // Confirm Password Field
                                 TextFormField(
                                   controller: _confirmPasswordController,
                                   obscureText: _obscureConfirmPassword,
@@ -589,11 +700,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     fillColor: Colors.grey[50],
                                     suffixIcon: IconButton(
                                       icon: Icon(
-                                        _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
+                                        _obscureConfirmPassword
+                                            ? Icons.visibility
+                                            : Icons.visibility_off,
                                       ),
                                       onPressed: () {
                                         setState(() {
-                                          _obscureConfirmPassword = !_obscureConfirmPassword;
+                                          _obscureConfirmPassword =
+                                              !_obscureConfirmPassword;
                                         });
                                       },
                                     ),
@@ -609,12 +723,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   },
                                 ),
                                 const SizedBox(height: 32),
-
-                                // Register Button
                                 ElevatedButton(
-                                  onPressed: _isLoading ? null : _handleRegister,
+                                  onPressed:
+                                      _isLoading ? null : _handleRegister,
                                   style: ElevatedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 16),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
@@ -625,7 +739,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                           width: 20,
                                           child: CircularProgressIndicator(
                                             strokeWidth: 2,
-                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                    Colors.white),
                                           ),
                                         )
                                       : const Text(
@@ -637,8 +753,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         ),
                                 ),
                                 const SizedBox(height: 16),
-
-                                // Login Link
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
@@ -678,6 +792,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CardNumberFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    var text = newValue.text;
+    if (newValue.selection.baseOffset == 0) return newValue;
+
+    var buffer = StringBuffer();
+    for (int i = 0; i < text.length; i++) {
+      buffer.write(text[i]);
+      var nonZeroIndex = i + 1;
+      if (nonZeroIndex % 4 == 0 && nonZeroIndex != text.length) {
+        buffer.write('-');
+      }
+    }
+
+    var string = buffer.toString();
+    return newValue.copyWith(
+      text: string,
+      selection: TextSelection.collapsed(offset: string.length),
     );
   }
 }

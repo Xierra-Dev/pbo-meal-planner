@@ -21,23 +21,38 @@ public class AuthController {
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
         try {
             System.out.println("Register request received: " + request);
-            
-            // Validasi input
+    
+            // Validate input
             if (request.getUsername() == null || request.getUsername().trim().isEmpty()) {
                 return ResponseEntity.badRequest()
                     .body(new ApiResponse(false, "Username is required"));
             }
-            
+    
             if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
                 return ResponseEntity.badRequest()
                     .body(new ApiResponse(false, "Email is required"));
             }
-            
+    
             if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
                 return ResponseEntity.badRequest()
                     .body(new ApiResponse(false, "Password is required"));
             }
-
+    
+            // Validate role
+            if (request.getRole() == null || request.getRole().trim().isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body(new ApiResponse(false, "Role is required"));
+            }
+    
+            // Check if role is valid
+            if (!request.getRole().equalsIgnoreCase("free user") && 
+                !request.getRole().equalsIgnoreCase("premium") && 
+                !request.getRole().equalsIgnoreCase("nutritionist")) {
+                return ResponseEntity.badRequest()
+                    .body(new ApiResponse(false, "Invalid role"));
+            }
+    
+            // Pass the request to the AuthService to handle registration
             return authService.register(request);
         } catch (Exception e) {
             System.out.println("Registration error: " + e.getMessage());
@@ -46,7 +61,7 @@ public class AuthController {
                 .body(new ApiResponse(false, e.getMessage()));
         }
     }
-
+    
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
         try {

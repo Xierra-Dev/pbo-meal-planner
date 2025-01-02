@@ -29,7 +29,7 @@ public class UserProfileDto {
 
     @Email(message = "Invalid email format")
     private String email;
-
+    private String role; // Add the role field if needed
     @Size(max = 255, message = "Bio cannot exceed 255 characters")
     private String bio;
 
