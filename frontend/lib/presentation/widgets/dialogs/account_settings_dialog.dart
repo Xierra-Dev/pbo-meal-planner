@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/services/auth_service.dart';
+import '../../../core/services/admin_service.dart';
 import 'settings_dialog.dart';
 import 'delete_account_dialog.dart';
+import '../../../presentation/pages/auth/login_screen.dart';
 
 class AccountSettingsDialog extends StatefulWidget {
   const AccountSettingsDialog({super.key});
@@ -13,12 +15,125 @@ class AccountSettingsDialog extends StatefulWidget {
 
 class _AccountSettingsDialogState extends State<AccountSettingsDialog> {
   late Future<Map<String, dynamic>> _userDataFuture;
+  final AdminService _adminService = AdminService();
 
   @override
   void initState() {
     super.initState();
     final authService = Provider.of<AuthService>(context, listen: false);
     _userDataFuture = authService.getUserProfile();
+  }
+
+  void _showSuccessNotification(String message) {
+    if (!mounted) return;
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        backgroundColor: Colors.green.shade800,
+        duration: const Duration(seconds: 3),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        content: Row(
+          children: [
+            const Icon(
+              Icons.check_circle_outline_rounded,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Success!',
+                    style: TextStyle(
+                      color: Colors.green.shade100,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    message,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(
+                Icons.close,
+                color: Colors.white,
+                size: 20,
+              ),
+              onPressed: () {
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleLogout() async {
+  try {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    await authService.logout();
+    if (mounted) {
+      _showSuccessNotification('Logged out successfully');
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginScreen()), // Gunakan MaterialPageRoute
+        (route) => false,
+      );
+    }
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to logout: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+}
+
+  Future<void> _handleDeleteAccount() async {
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final userId = await authService.getCurrentUserId();
+      
+      if (userId == null) {
+        throw Exception('User ID not found');
+      }
+
+      await _adminService.deleteUser(userId.toString());
+      await authService.logout();
+
+      if (mounted) {
+        _showSuccessNotification('Account deleted successfully');
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const LoginScreen()), // Gunakan MaterialPageRoute
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete account: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -116,24 +231,7 @@ class _AccountSettingsDialogState extends State<AccountSettingsDialog> {
                 _buildDangerButton(
                   'Logout',
                   Icons.logout,
-                  onTap: () async {
-                    try {
-                      final authService = Provider.of<AuthService>(context, listen: false);
-                      await authService.logout();
-                      if (mounted) {
-                        Navigator.of(context).pushNamedAndRemoveUntil(
-                          '/login',
-                          (route) => false,
-                        );
-                      }
-                    } catch (e) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Failed to logout: $e')),
-                        );
-                      }
-                    }
-                  },
+                  onTap: _handleLogout,
                 ),
                 const SizedBox(height: 12),
                 _buildDangerButton(
@@ -143,7 +241,8 @@ class _AccountSettingsDialogState extends State<AccountSettingsDialog> {
                   onTap: () {
                     showDialog(
                       context: context,
-                      builder: (context) => const DeleteAccountDialog(),
+                      builder: (context) => const DeleteAccountDialog(
+                      ),
                     );
                   },
                 ),
