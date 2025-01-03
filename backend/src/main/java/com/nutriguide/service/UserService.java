@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 import com.nutriguide.repository.UserHealthDataRepository;
 import com.nutriguide.repository.UserGoalRepository;
 import com.nutriguide.repository.UserAllergyRepository;
+import com.nutriguide.service.AuthService;
 
 
 @Service
@@ -46,6 +47,9 @@ public class UserService {
 
     @Autowired
     private UserAllergyRepository userAllergyRepository;
+
+    @Autowired
+    private AuthService authService;
 
     // Create
     @Transactional
@@ -303,6 +307,25 @@ public class UserService {
     public void deleteUser(Long userId) {
         User user = getUserById(userId);
         userRepository.delete(user);
+    }
+
+    public void changePassword(Long userId, String currentPassword, String newPassword) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+    
+        // Verify current password
+        if (!user.getPassword().equals(currentPassword)) {
+            throw new RuntimeException("Current password is incorrect");
+        }
+    
+        // Validate new password
+        if (!authService.isPasswordValid(newPassword)) {
+            throw new RuntimeException("New password does not meet security requirements");
+        }
+    
+        // Save new password
+        user.setPassword(newPassword);
+        userRepository.save(user);
     }
 
     // Admin methods

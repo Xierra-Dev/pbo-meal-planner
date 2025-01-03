@@ -71,7 +71,7 @@ public class AuthService {
         }
     }
 
-    private boolean isPasswordValid(String password) {
+    public boolean isPasswordValid(String password) {
         // Minimal 8 karakter
         if (password.length() < 8) return false;
         

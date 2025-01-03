@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.nutriguide.dto.ChangePasswordRequest;
 
 import java.util.List;
 import java.util.Map;
@@ -316,6 +317,20 @@ public class UserController {
                 Map.of("error", "Failed to delete user allergies"),
                 HttpStatus.INTERNAL_SERVER_ERROR
             );
+        }
+    }
+
+    @PutMapping("/{userId}/password")
+    public ResponseEntity<?> changePassword(
+        @PathVariable Long userId,
+        @RequestBody ChangePasswordRequest request
+    ) {
+        try {
+            userService.changePassword(userId, request.getCurrentPassword(), request.getNewPassword());
+            return ResponseEntity.ok(new ApiResponse(true, "Password changed successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                .body(new ApiResponse(false, "Failed to change password: " + e.getMessage()));
         }
     }
 

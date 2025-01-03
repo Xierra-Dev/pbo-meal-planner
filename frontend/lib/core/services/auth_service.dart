@@ -264,6 +264,29 @@ class AuthService with ChangeNotifier {
     }
   }
 
+  Future<void> changePassword(String currentPassword, String newPassword) async {
+    try {
+      final userId = await getCurrentUserId();
+      if (userId == null) throw Exception('User not logged in');
+
+      final response = await http.put(
+        Uri.parse('${ApiConstants.baseUrl}/users/$userId/password'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'currentPassword': currentPassword,
+          'newPassword': newPassword,
+        }),
+      );
+
+      if (response.statusCode != 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        throw Exception(data['message'] ?? 'Failed to change password');
+      }
+    } catch (e) {
+      throw Exception('Failed to change password: $e');
+    }
+  }
+
   Future<void> resetPassword(String email) async {
     try {
       _isLoading = true;

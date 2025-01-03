@@ -5,6 +5,7 @@ import '../../../core/services/admin_service.dart';
 import 'settings_dialog.dart';
 import 'delete_account_dialog.dart';
 import '../../../presentation/pages/auth/login_screen.dart';
+import 'change_password_dialog.dart';
 
 class AccountSettingsDialog extends StatefulWidget {
   const AccountSettingsDialog({super.key});
@@ -222,7 +223,10 @@ class _AccountSettingsDialogState extends State<AccountSettingsDialog> {
                   'Change your password',
                   Icons.lock,
                   onTap: () {
-                    // Handle password settings
+                    showDialog(
+                      context: context,
+                      builder: (context) => const ChangePasswordDialog(),
+                    );
                   },
                 ),
                 const SizedBox(height: 24),
