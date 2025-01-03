@@ -418,8 +418,9 @@ class _LandingScreenState extends State<LandingScreen> {
                           // Desktop layout - 3 columns
                           return Row(
                             mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start, // Tambahkan ini
                             children: [
-                              Flexible(
+                              Expanded(
                                 child: _buildFeatureCard(
                                   icon: Icons.restaurant_menu,
                                   title: 'Recipe Discovery',
@@ -428,7 +429,7 @@ class _LandingScreenState extends State<LandingScreen> {
                                 ),
                               ),
                               const SizedBox(width: 24),
-                              Flexible(
+                              Expanded(
                                 child: _buildFeatureCard(
                                   icon: Icons.calendar_today,
                                   title: 'Meal Planning',
@@ -437,7 +438,7 @@ class _LandingScreenState extends State<LandingScreen> {
                                 ),
                               ),
                               const SizedBox(width: 24),
-                              Flexible(
+                              Expanded(
                                 child: _buildFeatureCard(
                                   icon: Icons.track_changes,
                                   title: 'Nutrition Tracking',
