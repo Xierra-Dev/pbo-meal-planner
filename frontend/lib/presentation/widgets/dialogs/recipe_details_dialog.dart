@@ -3,8 +3,9 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../../core/models/recipe.dart';
 import '../../../core/services/planner_service.dart';
+import '../../../core/services/saved_recipe_service.dart';
 
-class RecipeDetailsDialog extends StatelessWidget {
+class RecipeDetailsDialog extends StatefulWidget {
   final Recipe recipe;
   final bool isSaved;
   final Function(Recipe, bool)? onSaveRecipe;
@@ -16,6 +17,84 @@ class RecipeDetailsDialog extends StatelessWidget {
     this.onSaveRecipe,
   });
 
+  @override
+  State<RecipeDetailsDialog> createState() => _RecipeDetailsDialogState();
+}
+
+class _RecipeDetailsDialogState extends State<RecipeDetailsDialog> {
+  late bool _isSaved;
+  bool _isProcessing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _isSaved = widget.isSaved;
+  }
+
+  void _showSuccessNotification(String message) {
+    if (!mounted) return;
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  Future<void> _handleSaveRecipe() async {
+    if (_isProcessing) return;
+
+    setState(() => _isProcessing = true);
+
+    try {
+      final savedRecipeService = Provider.of<SavedRecipeService>(
+        context, 
+        listen: false
+      );
+      
+      if (_isSaved) {
+        await savedRecipeService.unsaveRecipe(widget.recipe.id);
+        if (mounted) {
+          setState(() {
+            _isSaved = false;
+            _isProcessing = false;
+          });
+          _showSuccessNotification('Recipe removed from saved');
+        }
+      } else {
+        await savedRecipeService.saveRecipe(widget.recipe);
+        if (mounted) {
+          setState(() {
+            _isSaved = true;
+            _isProcessing = false;
+          });
+          _showSuccessNotification('Recipe saved successfully');
+        }
+      }
+
+      // Hapus callback ini karena menyebabkan double action
+      // if (widget.onSaveRecipe != null && mounted) {
+      //   widget.onSaveRecipe!(widget.recipe, _isSaved);
+      // }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to ${_isSaved ? 'unsave' : 'save'} recipe: $e'
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _showDatePicker(BuildContext context) async {
     try {
       final selectedDate = await showDatePicker(
@@ -25,7 +104,7 @@ class RecipeDetailsDialog extends StatelessWidget {
         lastDate: DateTime.now().add(const Duration(days: 365)),
       );
 
-      if (selectedDate != null && context.mounted) {
+      if (selectedDate != null && mounted) {
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -35,9 +114,9 @@ class RecipeDetailsDialog extends StatelessWidget {
         );
 
         final plannerService = context.read<PlannerService>();
-        await plannerService.addToPlan(recipe.id, selectedDate, recipe);
+        await plannerService.addToPlan(widget.recipe.id, selectedDate, widget.recipe);
         
-        if (context.mounted) {
+        if (mounted) {
           Navigator.of(context).pop();
           
           ScaffoldMessenger.of(context).showSnackBar(
@@ -52,7 +131,7 @@ class RecipeDetailsDialog extends StatelessWidget {
         }
       }
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -104,7 +183,7 @@ class RecipeDetailsDialog extends StatelessWidget {
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                   child: Image.network(
-                    recipe.thumbnailUrl,
+                    widget.recipe.thumbnailUrl,
                     height: 200,
                     width: double.infinity,
                     fit: BoxFit.cover,
@@ -129,7 +208,7 @@ class RecipeDetailsDialog extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      recipe.title,
+                      widget.recipe.title,
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -149,16 +228,16 @@ class RecipeDetailsDialog extends StatelessWidget {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(4),
                             child: LinearProgressIndicator(
-                              value: recipe.healthScore / 10,
+                              value: widget.recipe.healthScore / 10,
                               backgroundColor: Colors.grey[200],
-                              color: _getHealthScoreColor(recipe.healthScore),
+                              color: _getHealthScoreColor(widget.recipe.healthScore),
                               minHeight: 8,
                             ),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Text(
-                          '${recipe.healthScore.toStringAsFixed(1)} / 10',
+                          '${widget.recipe.healthScore.toStringAsFixed(1)} / 10',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -181,27 +260,27 @@ class RecipeDetailsDialog extends StatelessWidget {
                         padding: const EdgeInsets.all(16),
                         child: Column(
                           children: [
-                            _buildNutritionItem('Calories', '${recipe.nutritionInfo.calories} kcal'),
+                            _buildNutritionItem('Calories', '${widget.recipe.nutritionInfo.calories} kcal'),
                             const Divider(),
-                            _buildNutritionItem('Total Fat', '${recipe.nutritionInfo.totalFat}g'),
+                            _buildNutritionItem('Total Fat', '${widget.recipe.nutritionInfo.totalFat}g'),
                             const Divider(),
-                            _buildNutritionItem('Saturated Fat', '${recipe.nutritionInfo.saturatedFat}g'),
+                            _buildNutritionItem('Saturated Fat', '${widget.recipe.nutritionInfo.saturatedFat}g'),
                             const Divider(),
-                            _buildNutritionItem('Carbs', '${recipe.nutritionInfo.carbs}g'),
+                            _buildNutritionItem('Carbs', '${widget.recipe.nutritionInfo.carbs}g'),
                             const Divider(),
-                            _buildNutritionItem('Sugars', '${recipe.nutritionInfo.sugars}g'),
+                            _buildNutritionItem('Sugars', '${widget.recipe.nutritionInfo.sugars}g'),
                             const Divider(),
-                            _buildNutritionItem('Protein', '${recipe.nutritionInfo.protein}g'),
+                            _buildNutritionItem('Protein', '${widget.recipe.nutritionInfo.protein}g'),
                             const Divider(),
-                            _buildNutritionItem('Sodium', '${recipe.nutritionInfo.sodium}mg'),
+                            _buildNutritionItem('Sodium', '${widget.recipe.nutritionInfo.sodium}mg'),
                             const Divider(),
-                            _buildNutritionItem('Fiber', '${recipe.nutritionInfo.fiber}g'),
+                            _buildNutritionItem('Fiber', '${widget.recipe.nutritionInfo.fiber}g'),
                           ],
                         ),
                       ),
                     ),
                     const SizedBox(height: 24),
-                
+
                     // Ingredients
                     const Text(
                       'Ingredients',
@@ -214,15 +293,14 @@ class RecipeDetailsDialog extends StatelessWidget {
                     ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      itemCount: recipe.ingredients?.length ?? 0, // Tambahkan null check
+                      itemCount: widget.recipe.ingredients?.length ?? 0,
                       itemBuilder: (context, index) {
-                        // Pastikan ingredients dan measures tidak null
-                        final ingredient = recipe.ingredients?[index] ?? '';
-                        final measure = index < (recipe.measures?.length ?? 0) 
-                            ? recipe.measures![index] 
+                        final ingredient = widget.recipe.ingredients?[index] ?? '';
+                        final measure = index < (widget.recipe.measures?.length ?? 0) 
+                            ? widget.recipe.measures![index] 
                             : '';
 
-                        if (ingredient.isEmpty) return const SizedBox.shrink(); // Skip jika kosong
+                        if (ingredient.isEmpty) return const SizedBox.shrink();
 
                         return Padding(
                           padding: const EdgeInsets.symmetric(vertical: 4),
@@ -250,7 +328,7 @@ class RecipeDetailsDialog extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      recipe.instructions,
+                      widget.recipe.instructions,
                       style: const TextStyle(height: 1.5),
                     ),
                   ],
@@ -265,46 +343,26 @@ class RecipeDetailsDialog extends StatelessWidget {
                 children: [
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () async {
-                        if (onSaveRecipe != null) {
-                          try {
-                            await onSaveRecipe!(recipe, !isSaved);
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    isSaved 
-                                      ? 'Recipe removed from saved' 
-                                      : 'Recipe saved successfully'
-                                  ),
-                                  backgroundColor: isSaved ? Colors.red : Colors.green,
-                                  duration: const Duration(seconds: 2),
-                                ),
-                              );
-                            }
-                          } catch (e) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Failed to ${isSaved ? 'unsave' : 'save'} recipe'
-                                  ),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
-                          }
-                        }
-                      },
-                      icon: Icon(
-                        isSaved ? Icons.bookmark : Icons.bookmark_border,
-                        color: Colors.white,
-                      ),
-                      label: Text(isSaved ? 'Saved' : 'Save Recipe'),
+                      onPressed: _isProcessing ? null : _handleSaveRecipe,
+                      icon: _isProcessing 
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : Icon(
+                            _isSaved ? Icons.bookmark : Icons.bookmark_border,
+                            color: Colors.white,
+                          ),
+                      label: Text(_isSaved ? 'Saved' : 'Save Recipe'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Theme.of(context).primaryColor,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 12),
+                        disabledBackgroundColor: Theme.of(context).primaryColor.withOpacity(0.6),
                       ),
                     ),
                   ),

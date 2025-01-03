@@ -9,6 +9,10 @@ class PlannerService with ChangeNotifier {
   final AuthService _authService;
   bool _disposed = false;
 
+  DateTime? _lastFetch;
+  List<Planner>? _cachedMeals;
+  static const fetchCooldown = Duration(seconds: 5);
+
   PlannerService(this._apiService, this._authService) {
     // Listen to auth state changes
     _authService.addListener(_onAuthStateChanged);
@@ -29,6 +33,12 @@ class PlannerService with ChangeNotifier {
 
   Future<List<Planner>> getPlannedMeals(DateTime startDate, DateTime endDate) async {
     try {
+      // Cek apakah sudah waktunya fetch lagi
+      if (_lastFetch != null && 
+          DateTime.now().difference(_lastFetch!) < fetchCooldown) {
+        return _cachedMeals ?? [];
+      }
+
       await _authService.isInitialized;
       
       final userId = await _authService.getCurrentUserId();
@@ -37,14 +47,11 @@ class PlannerService with ChangeNotifier {
       final startDateStr = startDate.toIso8601String().split('T')[0];
       final endDateStr = endDate.toIso8601String().split('T')[0];
       
-      print('Fetching planned meals: userId=$userId, startDate=$startDateStr, endDate=$endDateStr');
-
+      _lastFetch = DateTime.now();
       final response = await _apiService.get(
         'planner?userId=$userId&startDate=$startDateStr&endDate=$endDateStr'
       );
       
-      print('Planner API Response: $response');
-
       if (response == null) return [];
       
       // Handle ApiResponse wrapper
@@ -56,12 +63,15 @@ class PlannerService with ChangeNotifier {
       final data = apiResponse['data'] as List;
       final meals = data.map((json) => Planner.fromJson(json)).toList();
       
-      print('Parsed ${meals.length} planned meals');
+      if (!_disposed) {
+        _cachedMeals = meals;
+        notifyListeners();
+      }
       
       return meals;
     } catch (e) {
       print('Error fetching planned meals: $e');
-      return [];
+      return _cachedMeals ?? [];
     }
   }
 

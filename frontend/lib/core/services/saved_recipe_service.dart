@@ -4,12 +4,17 @@ import 'package:http/http.dart' as http;
 import '../constants/api_constants.dart';
 import '../models/recipe.dart';
 import 'auth_service.dart';
+import 'dart:async';
 
 class SavedRecipeService with ChangeNotifier {
   final String baseUrl = '${ApiConstants.baseUrl}/saved-recipes';
   final AuthService _authService;
   bool _disposed = false;
   bool _isInitialized = false;
+
+  Timer? _debounceTimer;
+  DateTime? _lastFetch;
+  static const fetchCooldown = Duration(seconds: 5); // Minimal jarak antar fetch
 
   final Map<String, Recipe> _savedRecipes = {};
   final Set<String> _savedRecipeIds = {};
@@ -20,6 +25,7 @@ class SavedRecipeService with ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _debounceTimer?.cancel();
     super.dispose();
   }
 
@@ -71,20 +77,23 @@ class SavedRecipeService with ChangeNotifier {
   Future<List<Recipe>> getSavedRecipes() async {
     if (_disposed) return [];
     
+    // Cek apakah sudah waktunya fetch lagi
+    if (_lastFetch != null && 
+        DateTime.now().difference(_lastFetch!) < fetchCooldown) {
+      return _cachedRecipes ?? [];
+    }
+    
     try {
       await _ensureInitialized();
       
       final userId = await _authService.getCurrentUserId();
       if (userId == null) throw Exception('User not logged in');
 
-      print('Fetching saved recipes for user: $userId');
+      _lastFetch = DateTime.now();
       final response = await http.get(
         Uri.parse('$baseUrl?userId=$userId'),
         headers: {'Content-Type': 'application/json'},
       );
-
-      print('Save recipes response: ${response.statusCode}');
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
