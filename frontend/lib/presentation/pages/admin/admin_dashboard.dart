@@ -4,6 +4,7 @@ import '/core/services/admin_service.dart';
 import '/presentation/pages/admin/user_panel.dart';
 import '/presentation/widgets/dialogs/edit_user_dialog.dart';
 import '/presentation/widgets/dialogs/delete_user_dialog.dart';
+import 'package:flutter/services.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -184,26 +185,69 @@ class _AdminDashboardState extends State<AdminDashboard> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    return ListTile(
-      leading: Icon(
-        icon,
-        color: isSelected ? Colors.white : Colors.white70,
-        size: 22,
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          color: isSelected ? Colors.white : Colors.white70,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          fontSize: 14,
-        ),
-      ),
-      selected: isSelected,
-      selectedTileColor: Colors.white.withOpacity(0.1),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
-      onTap: onTap,
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return MouseRegion(
+          onEnter: (_) => setState(() {}),
+          onExit: (_) => setState(() {}),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                onTap();
+                // Tambahkan efek haptic feedback
+                HapticFeedback.lightImpact();
+              },
+              highlightColor: Colors.white.withOpacity(0.1),
+              splashColor: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isSelected ? Colors.white.withOpacity(0.15) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isSelected ? Colors.white.withOpacity(0.3) : Colors.transparent,
+                    width: 1,
+                  ),
+                  boxShadow: isSelected ? [
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.1),
+                      blurRadius: 10,
+                      spreadRadius: -2,
+                    )
+                  ] : null,
+                ),
+                child: ListTile(
+                  leading: Icon(
+                    icon,
+                    color: isSelected ? Colors.white : Colors.white70,
+                    size: 22,
+                  ),
+                  title: Text(
+                    title,
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.white70,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontSize: 14,
+                    ),
+                  ),
+                  selected: isSelected,
+                  selectedTileColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  minLeadingWidth: 0,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -258,24 +302,25 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-    Widget _getSelectedPanel() {
-    switch (_selectedIndex) {
-      case 0:
-        return _buildDashboardPanel();
-      case 1:
-        return _buildUsersPanel();
-      default:
-        return Center(
-          child: Text(
-            'Coming Soon',
-            style: TextStyle(
-              fontSize: 20,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
-            ),
+  Widget _getSelectedPanel() {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      transitionBuilder: (Widget child, Animation<double> animation) {
+        return FadeTransition(
+          opacity: animation,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0.05, 0),
+              end: Offset.zero,
+            ).animate(animation),
+            child: child,
           ),
         );
-    }
+      },
+      child: _selectedIndex == 0
+          ? _buildDashboardPanel()
+          : _buildUsersPanel(),
+    );
   }
 
   Widget _buildDashboardPanel() {
