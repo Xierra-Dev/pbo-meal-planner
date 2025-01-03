@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/services/auth_service.dart';
-import 'core/services/chat_service.dart';
 import 'core/services/saved_recipe_service.dart';
 import 'core/services/planner_service.dart';
 import 'core/services/recipe_service.dart';
 import 'core/services/profile_service.dart';
+import 'core/services/admin_service.dart';
+import 'core/routes/routes.dart';
+import 'core/guards/admin_guards.dart';
 import 'presentation/pages/splash_screen.dart';
+import 'presentation/pages/admin/admin_dashboard.dart';
+import 'presentation/pages/admin/admin_login.dart';
 import 'core/services/api_service.dart';
 
 void main() {
@@ -37,8 +41,8 @@ void main() {
         ChangeNotifierProvider<ProfileService>(
           create: (_) => ProfileService(),
         ),
-        Provider<ChatService>(
-          create: (_) => ChatService(),
+        Provider<AdminService>(
+          create: (_) => AdminService(),
         ),
       ],
       child: const MyApp(),
@@ -119,7 +123,47 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const SplashScreen(),
+      initialRoute: '/',
+      onGenerateRoute: (settings) {
+        // Handle admin routes with guard
+        if (settings.name == Routes.adminDashboard) {
+          return MaterialPageRoute(
+            builder: (context) => FutureBuilder<bool>(
+              future: AdminGuard.canActivate(context),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Scaffold(
+                    body: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                
+                if (snapshot.data == true) {
+                  return const AdminDashboard();
+                }
+                
+                return const AdminLoginScreen();
+              },
+            ),
+          );
+        }
+
+        // Handle other routes
+        switch (settings.name) {
+          case '/':
+            return MaterialPageRoute(builder: (_) => const SplashScreen());
+          case Routes.adminLogin:
+            return MaterialPageRoute(builder: (_) => const AdminLoginScreen());
+          default:
+            // Handle unknown routes
+            return MaterialPageRoute(
+              builder: (_) => Scaffold(
+                body: Center(
+                  child: Text('Route ${settings.name} not found'),
+                ),
+              ),
+            );
+        }
+      },
     );
   }
 }

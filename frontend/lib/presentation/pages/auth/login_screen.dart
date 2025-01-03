@@ -170,6 +170,59 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
 
+          // Admin Login Button
+          Positioned(
+            top: 24,
+            right: 24,
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => Navigator.pushNamed(context, '/admin/login'),
+                    borderRadius: BorderRadius.circular(12),
+                    hoverColor: Colors.white.withOpacity(0.1),
+                    splashColor: Colors.white.withOpacity(0.2),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.admin_panel_settings,
+                            color: Colors.white.withOpacity(0.9),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Admin',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
           // Content
           Center(
             child: SingleChildScrollView(

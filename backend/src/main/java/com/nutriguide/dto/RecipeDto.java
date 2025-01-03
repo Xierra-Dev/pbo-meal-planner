@@ -4,7 +4,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import java.util.List;
-import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -21,6 +20,4 @@ public class RecipeDto {
     private Integer cookingTime;
     private List<String> ingredients;
     private List<String> measures;
-    private Map<String, Object> nutritionInfo; // Added this field
-    private Integer healthScore;  // Added this field
 }

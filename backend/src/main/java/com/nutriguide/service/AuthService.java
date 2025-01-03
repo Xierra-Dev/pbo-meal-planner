@@ -5,7 +5,8 @@ import com.nutriguide.dto.LoginRequest;
 import com.nutriguide.dto.RegisterRequest;
 import com.nutriguide.dto.UserProfileDto;
 import com.nutriguide.model.User;
-import com.nutriguide.model.UserRole;
+import com.nutriguide.model.RegularUser;
+import com.nutriguide.model.PremiumUser;
 import com.nutriguide.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,109 +15,181 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
-
 @Service
+@Transactional
 public class AuthService {
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
-    private Long currentUserId;
 
     @Autowired
     private UserRepository userRepository;
 
-    @Transactional
     public ResponseEntity<?> register(RegisterRequest request) {
         try {
-            // Validation
+            logger.info("Processing registration for: {}", request.getUsername());
+            
+            // Validate password
+            if (!isPasswordValid(request.getPassword())) {
+                return ResponseEntity.badRequest()
+                    .body(new ApiResponse(false, "Password does not meet security requirements"));
+            }
+
+            // Validate unique username
             if (userRepository.existsByUsername(request.getUsername())) {
                 return ResponseEntity.badRequest()
-                    .body(new ApiResponse<>(false, "Username already exists"));
+                    .body(new ApiResponse(false, "Username is already taken"));
             }
 
+            // Validate unique email
             if (userRepository.existsByEmail(request.getEmail())) {
                 return ResponseEntity.badRequest()
-                    .body(new ApiResponse<>(false, "Email already exists"));
+                    .body(new ApiResponse(false, "Email is already registered"));
             }
 
-            // Create new user with selected account type
-            User user = User.builder()
-                .username(request.getUsername())
-                .email(request.getEmail())
-                .password(request.getPassword())
-                .roleUser(request.getAccountType()) // Use the selected account type
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
+            // Create user based on type
+            User user;
+            if ("PREMIUM".equals(request.getUserType().toString())) {
+                user = createPremiumUser(request);
+            } else {
+                user = createRegularUser(request);
+            }
 
-            // Save user
-            user = userRepository.save(user);
-            logger.info("User registered successfully: {} with role: {}", 
-                user.getUsername(), user.getRoleUser());
+            User savedUser = userRepository.save(user);
+            logger.info("User registered successfully: {}", savedUser.getUsername());
 
-            // Create response with token
-            Map<String, Object> userData = new HashMap<>();
-            userData.put("id", user.getId());
-            userData.put("username", user.getUsername());
-            userData.put("email", user.getEmail());
-            userData.put("roleUser", user.getRoleUser().getValue());
-            userData.put("token", generateToken(user));
+            // Prepare response
+            Map<String, Object> response = createUserResponse(savedUser);
 
-            return ResponseEntity.ok(new ApiResponse<>(true, "Registration successful", userData));
+            return ResponseEntity.ok(new ApiResponse(true, "User registered successfully", response));
         } catch (Exception e) {
             logger.error("Registration error: ", e);
             return ResponseEntity.badRequest()
-                .body(new ApiResponse<>(false, "Registration failed", e.getMessage()));
+                .body(new ApiResponse(false, "Registration failed: " + e.getMessage()));
         }
-        
     }
-    
+
+    private boolean isPasswordValid(String password) {
+        // Minimal 8 karakter
+        if (password.length() < 8) return false;
+        
+        // Harus mengandung minimal 1 huruf besar
+        if (!password.matches(".*[A-Z].*")) return false;
+        
+        // Harus mengandung minimal 1 huruf kecil
+        if (!password.matches(".*[a-z].*")) return false;
+        
+        // Harus mengandung minimal 1 angka
+        if (!password.matches(".*\\d.*")) return false;
+        
+        // Harus mengandung minimal 1 karakter spesial
+        return password.matches(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?].*");
+    }
+
+    private PremiumUser createPremiumUser(RegisterRequest request) {
+        return PremiumUser.builder()
+            .username(request.getUsername())
+            .email(request.getEmail())
+            .password(request.getPassword())
+            .firstName(request.getFirstName())
+            .lastName(request.getLastName())
+            .createdAt(LocalDateTime.now())
+            .updatedAt(LocalDateTime.now())
+            .subscriptionEndDate(LocalDateTime.now().plusMonths(1))
+            .hasAiRecommendations(true)
+            .hasAdvancedAnalytics(true)
+            .unlimitedSavedRecipes(true)
+            .unlimitedMealPlans(true)
+            .build();
+    }
+
+    private RegularUser createRegularUser(RegisterRequest request) {
+        return RegularUser.builder()
+            .username(request.getUsername())
+            .email(request.getEmail())
+            .password(request.getPassword())
+            .firstName(request.getFirstName())
+            .lastName(request.getLastName())
+            .createdAt(LocalDateTime.now())
+            .updatedAt(LocalDateTime.now())
+            .maxSavedRecipes(10)
+            .maxMealPlans(7)
+            .build();
+    }
+
     public ResponseEntity<?> login(LoginRequest request) {
         try {
+            logger.info("Processing login for: {}", request.getEmail());
+            
+            // Find user by email
             User user = userRepository.findByEmail(request.getEmail())
-                .orElse(null);
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-            if (user == null || !request.getPassword().equals(user.getPassword())) {
-                logger.warn("Login failed: Invalid credentials for email: {}", request.getEmail());
+            // Verify password
+            if (!request.getPassword().equals(user.getPassword())) {
                 return ResponseEntity.badRequest()
-                    .body(new ApiResponse<>(false, "Invalid email or password"));
+                    .body(new ApiResponse(false, "Invalid password"));
             }
 
-            // Create response with token
-            Map<String, Object> userData = new HashMap<>();
-            userData.put("id", user.getId());
-            userData.put("username", user.getUsername());
-            userData.put("email", user.getEmail());
-            userData.put("roleUser", user.getRoleUser().getValue());
-            userData.put("token", generateToken(user)); // Add simple token
-
+            // Prepare response
+            Map<String, Object> response = createUserResponse(user);
+            
             logger.info("User logged in successfully: {}", user.getUsername());
-            return ResponseEntity.ok(new ApiResponse<>(true, "Login successful", userData));
+            return ResponseEntity.ok(new ApiResponse(true, "Login successful", response));
         } catch (Exception e) {
             logger.error("Login error: ", e);
             return ResponseEntity.badRequest()
-                .body(new ApiResponse<>(false, "Login failed", e.getMessage()));
+                .body(new ApiResponse(false, "Login failed: " + e.getMessage()));
         }
     }
 
+    private Map<String, Object> createUserResponse(User user) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("userId", user.getId());
+        response.put("username", user.getUsername());
+        response.put("email", user.getEmail());
+        response.put("firstName", user.getFirstName());
+        response.put("lastName", user.getLastName());
+        response.put("profilePictureUrl", user.getProfilePictureUrl());
+        response.put("createdAt", user.getCreatedAt());
+        response.put("updatedAt", user.getUpdatedAt());
+
+        // Add type-specific information
+        if (user instanceof PremiumUser premiumUser) {
+            response.put("userType", "PREMIUM");
+            response.put("subscriptionEndDate", premiumUser.getSubscriptionEndDate());
+            response.put("hasAiRecommendations", premiumUser.getHasAiRecommendations());
+            response.put("hasAdvancedAnalytics", premiumUser.getHasAdvancedAnalytics());
+            response.put("unlimitedSavedRecipes", premiumUser.getUnlimitedSavedRecipes());
+            response.put("unlimitedMealPlans", premiumUser.getUnlimitedMealPlans());
+        } else if (user instanceof RegularUser regularUser) {
+            response.put("userType", "REGULAR");
+            response.put("maxSavedRecipes", regularUser.getMaxSavedRecipes());
+            response.put("maxMealPlans", regularUser.getMaxMealPlans());
+        }
+
+        return response;
+    }
+
     public boolean isEmailAvailable(String email) {
-        boolean isAvailable = !userRepository.existsByEmail(email);
-        logger.debug("Email availability check: {} - {}", email, isAvailable);
-        return isAvailable;
+        return !userRepository.existsByEmail(email);
     }
 
     public boolean isUsernameAvailable(String username) {
-        boolean isAvailable = !userRepository.existsByUsername(username);
-        logger.debug("Username availability check: {} - {}", username, isAvailable);
-        return isAvailable;
+        return !userRepository.existsByUsername(username);
+    }
+
+    public UserProfileDto getUserProfile(Long userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return convertToProfileDto(user);
     }
 
     private UserProfileDto convertToProfileDto(User user) {
-        return UserProfileDto.builder()
+        UserProfileDto.UserProfileDtoBuilder builder = UserProfileDto.builder()
             .id(user.getId())
             .username(user.getUsername())
             .email(user.getEmail())
@@ -125,33 +198,82 @@ public class AuthService {
             .bio(user.getBio())
             .profilePictureUrl(user.getProfilePictureUrl())
             .createdAt(user.getCreatedAt())
-            .updatedAt(user.getUpdatedAt())
-            .build();
-    }
+            .updatedAt(user.getUpdatedAt());
 
-    private String generateToken(User user) {
-        return Base64.getEncoder().encodeToString(
-            (user.getId() + ":" + user.getEmail() + ":" + System.currentTimeMillis())
-                .getBytes(StandardCharsets.UTF_8)
-        );
-    }
-
-    public User getCurrentUser() {
-        if (currentUserId == null) {
-            return null;
+        if (user instanceof PremiumUser premiumUser) {
+            builder
+                .userType("PREMIUM")
+                .subscriptionEndDate(premiumUser.getSubscriptionEndDate())
+                .hasAiRecommendations(premiumUser.getHasAiRecommendations())
+                .hasAdvancedAnalytics(premiumUser.getHasAdvancedAnalytics())
+                .unlimitedSavedRecipes(premiumUser.getUnlimitedSavedRecipes())
+                .unlimitedMealPlans(premiumUser.getUnlimitedMealPlans());
+        } else if (user instanceof RegularUser regularUser) {
+            builder
+                .userType("REGULAR")
+                .maxSavedRecipes(regularUser.getMaxSavedRecipes())
+                .maxMealPlans(regularUser.getMaxMealPlans());
         }
-        return userRepository.findById(currentUserId).orElse(null);
+
+        return builder.build();
     }
 
-    // Method untuk get role
-    public String getCurrentUserRole() {
-        User currentUser = getCurrentUser();
-        return currentUser != null ? currentUser.getRoleUser().getValue() : null;
+    @Transactional
+    public UserProfileDto updateProfile(Long userId, UserProfileDto profileDto) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Update fields if provided
+        if (profileDto.getFirstName() != null) {
+            user.setFirstName(profileDto.getFirstName());
+        }
+        if (profileDto.getLastName() != null) {
+            user.setLastName(profileDto.getLastName());
+        }
+        if (profileDto.getBio() != null) {
+            user.setBio(profileDto.getBio());
+        }
+        if (profileDto.getProfilePictureUrl() != null) {
+            user.setProfilePictureUrl(profileDto.getProfilePictureUrl());
+        }
+
+        user.setUpdatedAt(LocalDateTime.now());
+        User updatedUser = userRepository.save(user);
+
+        return convertToProfileDto(updatedUser);
     }
 
-    // Method untuk cek premium
-    public boolean isCurrentUserPremium() {
-        String role = getCurrentUserRole();
-        return role != null && role.equals(UserRole.PREMIUM_USER.getValue());
+    // Method untuk mengecek status subscription
+    public boolean isSubscriptionActive(Long userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (user instanceof PremiumUser premiumUser) {
+            return premiumUser.getSubscriptionEndDate().isAfter(LocalDateTime.now());
+        }
+        return false;
+    }
+
+    // Method untuk memperpanjang subscription
+    @Transactional
+    public void extendSubscription(Long userId, int months) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (user instanceof PremiumUser premiumUser) {
+            LocalDateTime currentEndDate = premiumUser.getSubscriptionEndDate();
+            LocalDateTime newEndDate;
+            
+            if (currentEndDate.isBefore(LocalDateTime.now())) {
+                newEndDate = LocalDateTime.now().plusMonths(months);
+            } else {
+                newEndDate = currentEndDate.plusMonths(months);
+            }
+            
+            premiumUser.setSubscriptionEndDate(newEndDate);
+            userRepository.save(premiumUser);
+        } else {
+            throw new RuntimeException("User is not a premium user");
+        }
     }
 }

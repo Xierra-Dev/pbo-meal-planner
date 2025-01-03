@@ -1,29 +1,38 @@
-class User {
-  final String id;
+import 'premium_user.dart';
+import 'regular_user.dart';
+
+abstract class User {
+  final int id;
   final String username;
   final String email;
-  final String? profilePicture;
-  final String role; // Add role field
+  final String firstName;
+  final String lastName;
+  final String? bio;
+  final String? profilePictureUrl;
+  final String userType;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   User({
     required this.id,
     required this.username,
     required this.email,
-    this.profilePicture,
-    required this.role, // Make role required
+    required this.firstName,
+    required this.lastName,
+    this.bio,
+    this.profilePictureUrl,
+    required this.userType,
+    required this.createdAt,
+    required this.updatedAt,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
-    return User(
-      id: json['id'].toString(),
-      username: json['username'],
-      email: json['email'],
-      profilePicture: json['profilePicture'],
-      role: json['roleUser'] ?? 'REGULAR_USER', // Get role from JSON
-    );
+    final userType = json['userType'];
+    if (userType == 'PREMIUM') {
+      return PremiumUser.fromJson(json);
+    }
+    return RegularUser.fromJson(json);
   }
 
-  bool isPremiumUser() {
-    return role == 'PREMIUM_USER';
-  }
+  Map<String, dynamic> toJson();
 }

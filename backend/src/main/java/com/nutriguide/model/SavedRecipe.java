@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 @Data
 @Entity
 @NoArgsConstructor
@@ -16,7 +18,9 @@ public class SavedRecipe {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+        // Di class SavedRecipe
+    @JsonBackReference
+    @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 

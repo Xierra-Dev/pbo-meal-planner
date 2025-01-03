@@ -10,14 +10,14 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-import com.nutriguide.model.UserRole;
-
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserProfileDto {
     private Long id;
+
+    private String role;
 
     @Size(min = 1, max = 100, message = "First name must be between 1 and 100 characters")
     private String firstName;
@@ -28,8 +28,6 @@ public class UserProfileDto {
     @NotBlank(message = "Username is required")
     @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
     private String username;
-
-    private UserRole roleUser;
 
     @Email(message = "Invalid email format")
     private String email;
@@ -42,6 +40,19 @@ public class UserProfileDto {
     private LocalDateTime createdAt;
     
     private LocalDateTime updatedAt;
+
+    private String userType; // "REGULAR" or "PREMIUM"
+
+    // Fields for Premium Users
+    private LocalDateTime subscriptionEndDate;
+    private Boolean hasAiRecommendations;
+    private Boolean hasAdvancedAnalytics;
+    private Boolean unlimitedSavedRecipes;
+    private Boolean unlimitedMealPlans;
+
+    // Fields for Regular Users
+    private Integer maxSavedRecipes;
+    private Integer maxMealPlans;
 
     // Custom method untuk generate profile URL
     public String getProfileUrl() {
@@ -111,13 +122,53 @@ public class UserProfileDto {
         return (completed * 100) / total;
     }
 
+    // Method untuk mengecek apakah user adalah Premium
+    public boolean isPremiumUser() {
+        return "PREMIUM".equals(userType);
+    }
+
+    // Method untuk mengecek status subscription Premium
+    public boolean hasActiveSubscription() {
+        if (!isPremiumUser()) return false;
+        return subscriptionEndDate != null && subscriptionEndDate.isAfter(LocalDateTime.now());
+    }
+
+    // Method untuk mendapatkan sisa hari subscription
+    public long getRemainingSubscriptionDays() {
+        if (!isPremiumUser() || subscriptionEndDate == null) return 0;
+        return java.time.Duration.between(LocalDateTime.now(), subscriptionEndDate).toDays();
+    }
+
+    // Method untuk mendapatkan jumlah resep yang bisa disimpan
+    public int getMaxSavedRecipesLimit() {
+        if (isPremiumUser() && Boolean.TRUE.equals(unlimitedSavedRecipes)) {
+            return Integer.MAX_VALUE;
+        }
+        return maxSavedRecipes != null ? maxSavedRecipes : 10;
+    }
+
+    // Method untuk mendapatkan jumlah meal plan yang bisa dibuat
+    public int getMaxMealPlansLimit() {
+        if (isPremiumUser() && Boolean.TRUE.equals(unlimitedMealPlans)) {
+            return Integer.MAX_VALUE;
+        }
+        return maxMealPlans != null ? maxMealPlans : 7;
+    }
+
     // Static factory method untuk membuat instance dari minimal data
-    public static UserProfileDto createMinimal(String username, String email) {
+    public static UserProfileDto createMinimal(String username, String email, String userType) {
         return UserProfileDto.builder()
             .username(username)
             .email(email)
+            .userType(userType)
             .createdAt(LocalDateTime.now())
             .updatedAt(LocalDateTime.now())
+            .maxSavedRecipes("REGULAR".equals(userType) ? 10 : null)
+            .maxMealPlans("REGULAR".equals(userType) ? 7 : null)
+            .hasAiRecommendations("PREMIUM".equals(userType))
+            .hasAdvancedAnalytics("PREMIUM".equals(userType))
+            .unlimitedSavedRecipes("PREMIUM".equals(userType))
+            .unlimitedMealPlans("PREMIUM".equals(userType))
             .build();
     }
 
@@ -128,5 +179,25 @@ public class UserProfileDto {
         if (username != null) username = username.trim().toLowerCase();
         if (email != null) email = email.trim().toLowerCase();
         if (bio != null) bio = bio.trim();
+        if (userType != null) userType = userType.toUpperCase();
+    }
+
+    // Method untuk memvalidasi user type
+    public boolean isValidUserType() {
+        return "REGULAR".equals(userType) || "PREMIUM".equals(userType);
+    }
+
+    // Method untuk mengecek fitur Premium
+    public boolean canAccessPremiumFeature(String featureName) {
+        if (!isPremiumUser()) return false;
+        if (!hasActiveSubscription()) return false;
+        
+        return switch (featureName) {
+            case "AI_RECOMMENDATIONS" -> Boolean.TRUE.equals(hasAiRecommendations);
+            case "ADVANCED_ANALYTICS" -> Boolean.TRUE.equals(hasAdvancedAnalytics);
+            case "UNLIMITED_RECIPES" -> Boolean.TRUE.equals(unlimitedSavedRecipes);
+            case "UNLIMITED_MEAL_PLANS" -> Boolean.TRUE.equals(unlimitedMealPlans);
+            default -> false;
+        };
     }
 }

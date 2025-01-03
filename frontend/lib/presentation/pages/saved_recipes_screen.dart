@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/models/recipe.dart';
 import '../../core/services/saved_recipe_service.dart';
-import '../widgets/chat_floating_button.dart';
 import '../widgets/recipe_card.dart';
 import '../widgets/dialogs/recipe_details_dialog.dart';
-import '../../core/services/auth_service.dart';
 
 class SavedRecipesScreen extends StatefulWidget {
   const SavedRecipesScreen({super.key});
@@ -16,41 +14,16 @@ class SavedRecipesScreen extends StatefulWidget {
 
 class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
   late Future<List<Recipe>> _savedRecipesFuture;
-  int? _userId;
-  String? _currentRole;
-
 
   @override
   void initState() {
     super.initState();
-    print('SavedRecipesScreen initialized');
     _refreshSavedRecipes();
-    _loadUserData();
   }
 
   void _refreshSavedRecipes() {
     final savedRecipeService = context.read<SavedRecipeService>();
     _savedRecipesFuture = savedRecipeService.getSavedRecipes();
-  }
-
-  Future<void> _loadUserData() async {
-    try {
-      final authService = context.read<AuthService>();
-      final userIdStr = await authService.getCurrentUserId();
-      final currentRole = await authService.getCurrentUserRole();
-
-      print('Received userId from AuthService: $currentRole' );
-      print('Received userId from AuthService: $userIdStr (type: ${userIdStr?.runtimeType})');
-      
-      if (mounted) {
-        setState(() {
-          _userId = userIdStr != null ? int.parse(userIdStr.toString()) : null;
-          _currentRole = currentRole;
-        });
-      }
-    } catch (e) {
-      print('Error loading user data: $e');
-    }
   }
 
   @override
@@ -267,26 +240,6 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
             ),
           ),
         ),
-      ),
-      floatingActionButton: Builder(
-        builder: (context) {
-          if (_userId == null) {
-            print('UserId is null, not showing chat button');
-            return const SizedBox.shrink();
-          }
-          return Theme(
-            data: Theme.of(context).copyWith(
-              floatingActionButtonTheme: const FloatingActionButtonThemeData(
-                backgroundColor: Colors.purple,
-                foregroundColor: Colors.white,
-              ),
-            ),
-            child: ChatFloatingButton(
-              userId: _userId!,
-              currentRole: _currentRole!,
-            ),
-          );
-        },
       ),
     );
   }

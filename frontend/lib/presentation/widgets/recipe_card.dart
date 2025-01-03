@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../core/models/recipe.dart';
+import 'package:provider/provider.dart';
+import '../../core/services/saved_recipe_service.dart';
+import '../../core/services/auth_service.dart';
+import '../../presentation/pages/upgrade_screen.dart';
+import '../widgets/dialogs/recipe_save_limit_dialog.dart';
 
 class RecipeCard extends StatelessWidget {
   final Recipe recipe;
@@ -23,6 +28,62 @@ class RecipeCard extends StatelessWidget {
     if (score >= 7.5) return Colors.green;
     if (score >= 5) return Colors.orange;
     return Colors.red;
+  }
+
+  Future<void> _handleSaveRecipe(BuildContext context, Recipe recipe, bool isSaved) async {
+    try {
+      if (!isSaved) {
+        // Cek batasan sebelum menyimpan
+        final savedRecipeService = Provider.of<SavedRecipeService>(context, listen: false);
+        final canSave = await savedRecipeService.canSaveMoreRecipes();
+        
+        if (!canSave) {
+          if (context.mounted) {
+            final userType = await Provider.of<AuthService>(context, listen: false).getUserType();
+            
+            showDialog(
+              context: context,
+              builder: (context) => RecipeSaveLimitDialog(
+                userType: userType ?? 'REGULAR',
+              ),
+            );
+          }
+          return;
+        }
+      }
+      
+      // Proses save/unsave recipe
+      if (onSaveRecipe != null) {
+        await onSaveRecipe!(recipe, isSaved);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildBenefitRow(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: Colors.green),
+          const SizedBox(width: 8),
+          Text(text),
+        ],
+      ),
+    );
   }
 
   // Di dalam method build
@@ -194,7 +255,7 @@ class RecipeCard extends StatelessWidget {
                       isSaved ? Icons.bookmark : Icons.bookmark_border,
                       color: Colors.white,
                     ),
-                    onPressed: () => onSaveRecipe!(recipe, isSaved),
+                    onPressed: () => _handleSaveRecipe(context, recipe, isSaved),
                     constraints: const BoxConstraints(
                       minWidth: 32,
                       minHeight: 32,

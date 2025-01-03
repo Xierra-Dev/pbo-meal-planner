@@ -19,10 +19,11 @@ import java.util.Map;
 @RequestMapping("/api/planner")
 @CrossOrigin(origins = "*")
 public class PlannerController {
+
     @Autowired
     private PlannerService plannerService;
 
-    @PostMapping("/add")  // Changed from "/" to "/add" for clarity
+    @PostMapping
     public ResponseEntity<?> addToPlan(
             @RequestParam Long userId,
             @RequestParam String recipeId,
@@ -30,8 +31,12 @@ public class PlannerController {
             @RequestBody Map<String, Object> body
     ) {
         try {
+            System.out.println("Received request body: " + body);
             Map<String, Object> recipeData = (Map<String, Object>) body.get("recipe");
             RecipeDto recipeDto = convertMapToRecipeDto(recipeData);
+            
+            System.out.println("Converted RecipeDto: " + recipeDto);
+            
             PlannerDto planner = plannerService.addToPlan(userId, recipeId, plannedDate, recipeDto);
             return ResponseEntity.ok(new ApiResponse<>(true, "Recipe added to plan", planner));
         } catch (Exception e) {
@@ -41,7 +46,7 @@ public class PlannerController {
         }
     }
 
-    @GetMapping("/list")  // Changed endpoint to be more specific
+    @GetMapping
     public ResponseEntity<?> getUserPlan(
             @RequestParam Long userId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
@@ -58,8 +63,8 @@ public class PlannerController {
 
     @DeleteMapping("/{plannerId}")
     public ResponseEntity<?> removePlannerItem(
-        @RequestParam Long userId,
-        @PathVariable Long plannerId) {
+            @RequestParam Long userId,
+            @PathVariable Long plannerId) {
         try {
             plannerService.removePlannerItem(plannerId, userId);
             return ResponseEntity.ok(new ApiResponse<>(true, "Planner item removed successfully", null));

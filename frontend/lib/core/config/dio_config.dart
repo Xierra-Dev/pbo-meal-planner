@@ -9,5 +9,12 @@ Dio createDio() {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   };
+  
+  if (allowCredentials) {  // Remove '== true' since it's redundant
+    dio.options.validateStatus = (status) {
+      return status! < 500;
+    };
+  }
+  
   return dio;
 }

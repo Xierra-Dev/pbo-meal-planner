@@ -17,7 +17,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin(origins = "*") // Sesuaikan dengan domain Flutter app
+@CrossOrigin(origins = "*")
 public class UserController {
 
     @Autowired
@@ -25,9 +25,10 @@ public class UserController {
 
     // Create
     @PostMapping
-    public ResponseEntity<?> createUser(@Valid @RequestBody User user) {
+    public ResponseEntity<?> createUser(@Valid @RequestBody User user, 
+                                      @RequestParam(defaultValue = "REGULAR") String userType) {
         try {
-            User createdUser = userService.save(user);
+            User createdUser = userService.save(user, userType.toUpperCase());
             return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
         } catch (UserAlreadyExistsException e) {
             return new ResponseEntity<>(
@@ -93,37 +94,132 @@ public class UserController {
     @GetMapping("/{userId}/profile")
     public ResponseEntity<?> getUserProfile(@PathVariable Long userId) {
         try {
-            User user = userService.findById(userId);
-            UserProfileDto profileDto = convertToProfileDto(user);
-            return ResponseEntity.ok(new ApiResponse<>(true, "Profile retrieved successfully", profileDto));
+            UserProfileDto profile = userService.getUserProfile(userId);
+            return ResponseEntity.ok(profile);
         } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ApiResponse<>(false, "User not found"));
+            return new ResponseEntity<>(
+                Map.of("error", e.getMessage()),
+                HttpStatus.NOT_FOUND
+            );
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ApiResponse<>(false, "Failed to get user profile"));
+            return new ResponseEntity<>(
+                Map.of("error", "Failed to get user profile"),
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
         }
     }
 
     @PutMapping("/{userId}/profile")
-public ResponseEntity<?> updateProfile(
-    @PathVariable Long userId, 
-    @Valid @RequestBody UserProfileDto profileDto,
-    @RequestHeader("Authorization") String token) {
-    try {
-        UserProfileDto updatedProfile = userService.updateProfile(userId, profileDto);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Profile updated successfully", updatedProfile));
-    } catch (ResourceNotFoundException e) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-            .body(new ApiResponse<>(false, e.getMessage()));
-    } catch (UserAlreadyExistsException e) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-            .body(new ApiResponse<>(false, e.getMessage()));
-    } catch (Exception e) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body(new ApiResponse<>(false, "Failed to update profile: " + e.getMessage()));
+    public ResponseEntity<?> updateProfile(
+        @PathVariable Long userId,
+        @Valid @RequestBody UserProfileDto profileDto
+    ) {
+        try {
+            UserProfileDto updatedProfile = userService.updateProfile(userId, profileDto);
+            return ResponseEntity.ok(updatedProfile);
+        } catch (ResourceNotFoundException e) {
+            return new ResponseEntity<>(
+                Map.of("error", e.getMessage()),
+                HttpStatus.NOT_FOUND
+            );
+        } catch (UserAlreadyExistsException e) {
+            return new ResponseEntity<>(
+                Map.of("error", e.getMessage()),
+                HttpStatus.CONFLICT
+            );
+        } catch (Exception e) {
+            return new ResponseEntity<>(
+                Map.of("error", "Failed to update profile"),
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
     }
-}   
+
+    @PutMapping("/{userId}/type")
+    public ResponseEntity<?> updateUserType(
+            @PathVariable Long userId,
+            @RequestBody Map<String, String> payload) {
+        try {
+            String newUserType = payload.get("userType");
+            if (newUserType == null) {
+                return ResponseEntity.badRequest()
+                    .body(new ApiResponse(false, "User type is required"));
+            }
+            
+            userService.updateUserType(userId, newUserType);
+            return ResponseEntity.ok(new ApiResponse(true, "User type updated successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiResponse(false, "Failed to update user type: " + e.getMessage()));
+        }
+    }
+
+    // Subscription Management
+    @PostMapping("/{userId}/upgrade-to-premium")
+    public ResponseEntity<?> upgradeToPremium(@PathVariable Long userId) {
+        try {
+            UserProfileDto updatedProfile = userService.upgradeToPremium(userId);
+            return ResponseEntity.ok(updatedProfile);
+        } catch (ResourceNotFoundException e) {
+            return new ResponseEntity<>(
+                Map.of("error", e.getMessage()),
+                HttpStatus.NOT_FOUND
+            );
+        } catch (Exception e) {
+            return new ResponseEntity<>(
+                Map.of("error", "Failed to upgrade to premium"),
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    @PostMapping("/{userId}/downgrade-to-regular")
+    public ResponseEntity<?> downgradeToRegular(@PathVariable Long userId) {
+        try {
+            UserProfileDto updatedProfile = userService.downgradeToRegular(userId);
+            return ResponseEntity.ok(updatedProfile);
+        } catch (ResourceNotFoundException e) {
+            return new ResponseEntity<>(
+                Map.of("error", e.getMessage()),
+                HttpStatus.NOT_FOUND
+            );
+        } catch (Exception e) {
+            return new ResponseEntity<>(
+                Map.of("error", "Failed to downgrade to regular"),
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    // Subscription Status
+    @GetMapping("/{userId}/subscription-status")
+    public ResponseEntity<?> getSubscriptionStatus(@PathVariable Long userId) {
+        try {
+            UserProfileDto profile = userService.getUserProfile(userId);
+            Map<String, Object> status = Map.of(
+                "isPremium", profile.isPremiumUser(),
+                "hasActiveSubscription", profile.hasActiveSubscription(),
+                "remainingDays", profile.getRemainingSubscriptionDays(),
+                "features", Map.of(
+                    "aiRecommendations", profile.canAccessPremiumFeature("AI_RECOMMENDATIONS"),
+                    "advancedAnalytics", profile.canAccessPremiumFeature("ADVANCED_ANALYTICS"),
+                    "unlimitedRecipes", profile.canAccessPremiumFeature("UNLIMITED_RECIPES"),
+                    "unlimitedMealPlans", profile.canAccessPremiumFeature("UNLIMITED_MEAL_PLANS")
+                )
+            );
+            return ResponseEntity.ok(status);
+        } catch (ResourceNotFoundException e) {
+            return new ResponseEntity<>(
+                Map.of("error", e.getMessage()),
+                HttpStatus.NOT_FOUND
+            );
+        } catch (Exception e) {
+            return new ResponseEntity<>(
+                Map.of("error", "Failed to get subscription status"),
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
 
     // Check username/email availability
     @GetMapping("/check-username/{username}")
@@ -160,6 +256,47 @@ public ResponseEntity<?> updateProfile(
         }
     }
 
+    // Profile Completion
+    @GetMapping("/{userId}/profile-completion")
+    public ResponseEntity<?> getProfileCompletion(@PathVariable Long userId) {
+        try {
+            UserProfileDto profile = userService.getUserProfile(userId);
+            Map<String, Object> completion = Map.of(
+                "isComplete", profile.isProfileComplete(),
+                "percentage", profile.getProfileCompletionPercentage(),
+                "missingFields", getMissingFields(profile)
+            );
+            return ResponseEntity.ok(completion);
+        } catch (ResourceNotFoundException e) {
+            return new ResponseEntity<>(
+                Map.of("error", e.getMessage()),
+                HttpStatus.NOT_FOUND
+            );
+        } catch (Exception e) {
+            return new ResponseEntity<>(
+                Map.of("error", "Failed to get profile completion status"),
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    private List<String> getMissingFields(UserProfileDto profile) {
+        List<String> missingFields = new java.util.ArrayList<>();
+        if (profile.getFirstName() == null || profile.getFirstName().trim().isEmpty()) {
+            missingFields.add("firstName");
+        }
+        if (profile.getLastName() == null || profile.getLastName().trim().isEmpty()) {
+            missingFields.add("lastName");
+        }
+        if (profile.getBio() == null || profile.getBio().trim().isEmpty()) {
+            missingFields.add("bio");
+        }
+        if (!profile.hasValidProfilePicture()) {
+            missingFields.add("profilePicture");
+        }
+        return missingFields;
+    }
+
     // Error handler untuk validation errors
     @ExceptionHandler(jakarta.validation.ConstraintViolationException.class)
     public ResponseEntity<?> handleValidationExceptions(jakarta.validation.ConstraintViolationException e) {
@@ -168,20 +305,5 @@ public ResponseEntity<?> updateProfile(
             "details", e.getMessage()
         );
         return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
-    }
-
-    private UserProfileDto convertToProfileDto(User user) {
-        return UserProfileDto.builder()
-            .id(user.getId())
-            .username(user.getUsername())
-            .email(user.getEmail())
-            .firstName(user.getFirstName())
-            .lastName(user.getLastName())
-            .bio(user.getBio())
-            .profilePictureUrl(user.getProfilePictureUrl())
-            .createdAt(user.getCreatedAt())
-            .updatedAt(user.getUpdatedAt())
-            .roleUser(user.getRoleUser())
-            .build();
     }
 }

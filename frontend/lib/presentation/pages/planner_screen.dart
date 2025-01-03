@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../core/models/planner.dart';
-import '../../core/services/auth_service.dart';
 import '../../core/services/planner_service.dart';
 import '../../core/services/profile_service.dart';
-import '../widgets/chat_floating_button.dart';
 import '../widgets/meal_card.dart';
 import '../widgets/loading_indicator.dart';
 import '../widgets/error_view.dart';
+import 'upgrade_screen.dart';
+import '../../core/models/recipe.dart';
 
 class PlannerScreen extends StatefulWidget {
   const PlannerScreen({super.key});
@@ -20,49 +20,49 @@ class PlannerScreen extends StatefulWidget {
 class _PlannerScreenState extends State<PlannerScreen> {
   DateTime _selectedDate = DateTime.now();
   bool _isLoading = true;
-  final bool _isPremiumUser = false;
-  int? _userId;
-  String? _currentRole;
   String? _error;
   Map<DateTime, List<Planner>> _plannedMeals = {};
 
   @override
   void initState() {
     super.initState();
-    print('PlannerScreen initialized');
-    _loadInitialData();
-    _loadUserData();
+    _loadPlannedMeals();
   }
 
-  Future<void> _loadInitialData() async {
-    await _loadUserData();
-    if (mounted) {
-      await _loadPlannedMeals();
-    }
-  }
-
-  Future<void> _loadUserData() async {
+    Future<void> _addToPlanner(Recipe recipe) async {
     try {
-      final authService = context.read<AuthService>();
-      final userIdStr = await authService.getCurrentUserId();
-      final currentRole = await authService.getCurrentUserRole();
-
-      print('Received userId from AuthService: $currentRole' );
-      print('Received userId from AuthService: $userIdStr (type: ${userIdStr?.runtimeType})');
+      final plannedDate = _selectedDate;
+      await context.read<PlannerService>().addToPlan(recipe.id, plannedDate, recipe);
       
       if (mounted) {
-        setState(() {
-          _userId = userIdStr != null ? int.parse(userIdStr.toString()) : null;
-          _currentRole = currentRole;
-        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Recipe added to planner')),
+        );
       }
+      _loadPlannedMeals();
     } catch (e) {
-      print('Error loading user data: $e');
+      if (e.toString().contains('maximum number of meal plans')) {
+        // Show upgrade dialog
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => const Dialog(
+              child: UpgradeScreen(),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to add recipe: ${e.toString()}')),
+          );
+        }
+      }
     }
   }
 
   Future<void> _loadPlannedMeals() async {
-    if (!mounted || _userId == null) return;
+    if (!mounted) return;
 
     setState(() {
       _isLoading = true;
@@ -77,8 +77,6 @@ class _PlannerScreenState extends State<PlannerScreen> {
           .read<PlannerService>()
           .getPlannedMeals(startDate, endDate);
 
-      if (!mounted) return;
-
       final groupedMeals = <DateTime, List<Planner>>{};
       for (var meal in plannedMeals) {
         final date = DateTime(
@@ -86,16 +84,19 @@ class _PlannerScreenState extends State<PlannerScreen> {
           meal.plannedDate.month,
           meal.plannedDate.day,
         );
+        
         if (!groupedMeals.containsKey(date)) {
           groupedMeals[date] = [];
         }
         groupedMeals[date]!.add(meal);
       }
 
-      setState(() {
-        _plannedMeals = groupedMeals;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _plannedMeals = groupedMeals;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -109,32 +110,13 @@ class _PlannerScreenState extends State<PlannerScreen> {
   Future<void> _deletePlannedMeal(Planner meal) async {
     try {
       await context.read<PlannerService>().removePlannedMeal(meal);
-      await _loadPlannedMeals();
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Recipe successfully deleted from plan'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.all(16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        );
-      }
+      _loadPlannedMeals();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to remove recipe: $e'),
+            content: Text('Failed to remove meal: $e'),
             backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.all(16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
           ),
         );
       }
@@ -235,26 +217,6 @@ class _PlannerScreenState extends State<PlannerScreen> {
             ),
           ),
         ),
-      ),
-      floatingActionButton: Builder(
-        builder: (context) {
-          if (_userId == null) {
-            print('UserId is null, not showing chat button');
-            return const SizedBox.shrink();
-          }
-          return Theme(
-            data: Theme.of(context).copyWith(
-              floatingActionButtonTheme: const FloatingActionButtonThemeData(
-                backgroundColor: Colors.purple,
-                foregroundColor: Colors.white,
-              ),
-            ),
-            child: ChatFloatingButton(
-              userId: _userId!,
-              currentRole: _currentRole!,
-            ),
-          );
-        },
       ),
     );
   }
@@ -362,35 +324,37 @@ class _PlannerScreenState extends State<PlannerScreen> {
                             onDelete: () => _deletePlannedMeal(meal),
                             onToggleComplete: (meal) async {
                               try {
+                                // Jika meal sudah completed, kita akan un-complete
                                 if (meal.isCompleted) {
                                   await context.read<PlannerService>().toggleMealCompletion(meal);
                                   
                                   if (meal.isToday && context.mounted) {
+                                    // Kurangi nutrisi karena meal di-uncomplete
                                     context.read<ProfileService>().updateTodayNutrition(
                                       meal.recipe.nutritionInfo,
-                                      false,
+                                      false, // false untuk mengurangi nutrisi
                                     );
                                   }
                                 } else {
+                                  // Jika meal belum completed
                                   await context.read<PlannerService>().toggleMealCompletion(meal);
                                   
                                   if (meal.isToday && context.mounted) {
+                                    // Tambah nutrisi karena meal completed
                                     context.read<ProfileService>().updateTodayNutrition(
                                       meal.recipe.nutritionInfo,
-                                      true,
+                                      true, // true untuk menambah nutrisi
                                     );
                                   }
                                 }
                                 
-                                await _loadPlannedMeals();
+                                _loadPlannedMeals();
 
                                 if (mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
-                                        meal.isCompleted 
-                                          ? 'Recipe marked as incomplete'
-                                          : 'Recipe marked as complete'
+                                        meal.isCompleted ? 'Meal marked as incomplete' : 'Meal marked as complete'
                                       ),
                                       backgroundColor: Colors.green,
                                       behavior: SnackBarBehavior.floating,
@@ -405,7 +369,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
                                 if (mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text('Failed to update recipe status: $e'),
+                                      content: Text('Failed to update meal status: $e'),
                                       backgroundColor: Colors.red,
                                       behavior: SnackBarBehavior.floating,
                                       margin: const EdgeInsets.all(16),
@@ -417,7 +381,6 @@ class _PlannerScreenState extends State<PlannerScreen> {
                                 }
                               }
                             },
-                            checkColor: meal.isCompleted ? Colors.green : null,
                           ),
                         ),
                       )).toList(),

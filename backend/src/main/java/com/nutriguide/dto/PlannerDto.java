@@ -9,5 +9,6 @@ public class PlannerDto {
     private Long userId;
     private Long recipeId;
     private LocalDate plannedDate;
+    private boolean completed;
     private RecipeDto recipe;
 }

@@ -7,7 +7,6 @@ class MealCard extends StatelessWidget {
   final VoidCallback? onDelete;
   final Function(Planner)? onToggleComplete;
   final bool showActions;
-  final Color? checkColor;
 
   const MealCard({
     super.key,
@@ -15,7 +14,6 @@ class MealCard extends StatelessWidget {
     this.onDelete,
     this.onToggleComplete,
     this.showActions = true,
-    this.checkColor,
   });
 
   @override

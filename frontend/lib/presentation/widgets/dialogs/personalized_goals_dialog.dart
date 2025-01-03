@@ -141,82 +141,112 @@ class _PersonalizedGoalsDialogState extends State<PersonalizedGoalsDialog> {
     }
   }
 
-  @override
+    @override
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
+
+    final screenSize = MediaQuery.of(context).size;
 
     return Dialog(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
       child: Container(
-        width: 400,
-        padding: const EdgeInsets.all(24),
+        width: screenSize.width * 0.9,
+        constraints: BoxConstraints(
+          maxWidth: 400,
+          maxHeight: screenSize.height * 0.8,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    Future.delayed(const Duration(milliseconds: 100), () {
-                      showDialog(
-                        context: context,
-                        builder: (context) => const PreferencesDialog(),
-                        barrierDismissible: true,
-                      );
-                    });
-                  },
+            // Header
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: Colors.grey.shade200),
                 ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Personalized Goals',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+              ),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      Future.delayed(const Duration(milliseconds: 100), () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => const PreferencesDialog(),
+                          barrierDismissible: true,
+                        );
+                      });
+                    },
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Select your health and wellness goals',
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 16,
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Personalized Goals',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 24),
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _goals.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                return _buildGoalItem(_goals[index]);
-              },
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _saveGoals,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+
+            // Subtitle
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+              child: Text(
+                'Select your health and wellness goals',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 16,
                 ),
-                child: const Text(
-                  'Save',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.white,
+              ),
+            ),
+
+            // Scrollable Content
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                child: Column(
+                  children: _goals.map((goal) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _buildGoalItem(goal),
+                  )).toList(),
+                ),
+              ),
+            ),
+
+            // Bottom Button
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: Colors.grey.shade200),
+                ),
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _saveGoals,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepPurple,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Save',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),

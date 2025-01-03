@@ -2,20 +2,23 @@ package com.nutriguide.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import lombok.experimental.SuperBuilder;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.nutriguide.enums.UserType;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
 @Table(name = "users")
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "user_type", discriminatorType = DiscriminatorType.STRING)
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,10 +33,6 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "role_user", nullable = false)
-    private UserRole roleUser;
-
     @Column(name = "first_name")
     private String firstName;
 
@@ -46,24 +45,126 @@ public class User {
     @Column(name = "profile_picture_url")
     private String profilePictureUrl;
 
-    @CreationTimestamp
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // Helper methods
-    public boolean isAdmin() {
-        return this.roleUser == UserRole.ADMIN;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "user_type", insertable = false, updatable = false)
+    private UserType userType;
+
+    // Premium features
+    @Column(name = "subscription_end_date")
+    private LocalDateTime subscriptionEndDate;
+
+    @Column(name = "has_ai_recommendations")
+    private Boolean hasAiRecommendations = false;
+
+    @Column(name = "has_advanced_analytics")
+    private Boolean hasAdvancedAnalytics = false;
+
+    @Column(name = "unlimited_saved_recipes")
+    private Boolean unlimitedSavedRecipes = false;
+
+    @Column(name = "unlimited_meal_plans")
+    private Boolean unlimitedMealPlans = false;
+
+    // Regular user limits
+    @Column(name = "max_saved_recipes")
+    private Integer maxSavedRecipes = 10;
+
+    @Column(name = "max_meal_plans")
+    private Integer maxMealPlans = 7;
+
+    // Role for admin functionality
+    @Column(nullable = false)
+    private String role = "USER";
+
+    @JsonManagedReference
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SavedRecipe> savedRecipes;
+
+    @JsonManagedReference
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Planner> planners;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+        
+        if (userType == null) {
+            userType = UserType.REGULAR;
+        }
+        
+        if (maxSavedRecipes == null) {
+            maxSavedRecipes = 10;
+        }
+        
+        if (maxMealPlans == null) {
+            maxMealPlans = 7;
+        }
     }
 
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
+    // Getters and setters for premium features
+    public Boolean getHasAiRecommendations() {
+        return hasAiRecommendations != null ? hasAiRecommendations : false;
+    }
+
+    public Boolean getHasAdvancedAnalytics() {
+        return hasAdvancedAnalytics != null ? hasAdvancedAnalytics : false;
+    }
+
+    public Boolean getUnlimitedSavedRecipes() {
+        return unlimitedSavedRecipes != null ? unlimitedSavedRecipes : false;
+    }
+
+    public Boolean getUnlimitedMealPlans() {
+        return unlimitedMealPlans != null ? unlimitedMealPlans : false;
+    }
+
+    // Utility methods
     public boolean isPremiumUser() {
-        return this.roleUser == UserRole.PREMIUM_USER;
+        return UserType.PREMIUM.equals(userType);
     }
 
-    public boolean isRegularUser() {
-        return this.roleUser == UserRole.REGULAR_USER;
+    public boolean isAdmin() {
+        return "ADMIN".equals(role);
+    }
+
+    public boolean hasActiveSubscription() {
+        if (!isPremiumUser()) return false;
+        if (subscriptionEndDate == null) return false;
+        return subscriptionEndDate.isAfter(LocalDateTime.now());
+    }
+
+    public boolean canAccessPremiumFeature(String featureName) {
+        if (!isPremiumUser()) return false;
+        if (!hasActiveSubscription()) return false;
+        
+        return switch (featureName) {
+            case "AI_RECOMMENDATIONS" -> getHasAiRecommendations();
+            case "ADVANCED_ANALYTICS" -> getHasAdvancedAnalytics();
+            case "UNLIMITED_SAVED_RECIPES" -> getUnlimitedSavedRecipes();
+            case "UNLIMITED_MEAL_PLANS" -> getUnlimitedMealPlans();
+            default -> false;
+        };
+    }
+
+    public int getRemainingRecipes() {
+        if (getUnlimitedSavedRecipes()) return Integer.MAX_VALUE;
+        return maxSavedRecipes;
+    }
+
+    public int getRemainingMealPlans() {
+        if (getUnlimitedMealPlans()) return Integer.MAX_VALUE;
+        return maxMealPlans;
     }
 }

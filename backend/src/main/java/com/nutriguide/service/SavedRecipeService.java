@@ -43,27 +43,57 @@ public class SavedRecipeService {
         try {
             logger.info("Fetching saved recipes for user ID: {}", userId);
 
-            // Validate user exists and get user object
-            User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
-
-            // Log user role for debugging
-            logger.debug("User role: {}", user.getRoleUser());
+            // Validate user exists
+            if (!userRepository.existsById(userId)) {
+                logger.error("User not found with ID: {}", userId);
+                throw new ResourceNotFoundException("User not found with id: " + userId);
+            }
 
             // Get saved recipes
             List<SavedRecipe> savedRecipes = savedRecipeRepository.findByUserIdWithRecipe(userId);
             logger.debug("Found {} saved recipes", savedRecipes.size());
 
+            // Convert to DTOs
             return savedRecipes.stream()
-                .map(this::convertSavedRecipeToDto)
+                .map(savedRecipe -> {
+                    Recipe recipe = savedRecipe.getRecipe();
+                    try {
+                        RecipeDto dto = new RecipeDto();
+                        dto.setId(recipe.getExternalId());
+                        dto.setTitle(recipe.getTitle());
+                        dto.setDescription(recipe.getDescription());
+                        dto.setThumbnailUrl(recipe.getThumbnailUrl());
+                        dto.setArea(recipe.getArea());
+                        dto.setCategory(recipe.getCategory());
+                        dto.setInstructions(recipe.getInstructions());
+
+                        // Convert JSON strings to Lists
+                        if (recipe.getIngredients() != null && !recipe.getIngredients().isEmpty()) {
+                            dto.setIngredients(recipe.getIngredientsList());
+                        } else {
+                            dto.setIngredients(new ArrayList<>());
+                        }
+
+                        if (recipe.getMeasures() != null && !recipe.getMeasures().isEmpty()) {
+                            dto.setMeasures(recipe.getMeasuresList());
+                        } else {
+                            dto.setMeasures(new ArrayList<>());
+                        }
+
+                        return dto;
+                    } catch (Exception e) {
+                        logger.error("Error converting recipe data for recipe ID {}: {}", 
+                            recipe.getExternalId(), e.getMessage());
+                        throw new RuntimeException("Error processing recipe data", e);
+                    }
+                })
                 .collect(Collectors.toList());
 
         } catch (ResourceNotFoundException e) {
-            logger.error("User not found error: {}", e.getMessage());
             throw e;
         } catch (Exception e) {
-            logger.error("Error getting saved recipes for user {}: {}", userId, e.getMessage(), e);
-            throw new RuntimeException("Failed to get saved recipes", e);
+            logger.error("Error getting saved recipes for user {}: {}", userId, e.getMessage());
+            throw new RuntimeException("Failed to get saved recipes: " + e.getMessage());
         }
     }
 
@@ -71,67 +101,49 @@ public class SavedRecipeService {
         try {
             logger.info("Saving recipe: {} for user: {}", recipeId, userId);
             
-            // Validate user exists and get user object
+            // Validate user exists
             User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
-            // Log user role for debugging
-            logger.debug("User role: {}", user.getRoleUser());
-
+            // Check if recipe already saved
             if (savedRecipeRepository.existsByUserIdAndRecipe_ExternalId(userId, recipeId)) {
                 throw new RuntimeException("Recipe already saved by this user");
             }
 
             Recipe recipe = recipeRepository.findByExternalId(recipeId)
-                .orElseGet(() -> createNewRecipe(recipeId, recipeDto));
+                    .orElseGet(() -> {
+                        Recipe newRecipe = new Recipe();
+                        try {
+                            newRecipe.setExternalId(recipeId);
+                            newRecipe.setTitle(recipeDto.getTitle());
+                            newRecipe.setDescription(recipeDto.getDescription());
+                            newRecipe.setThumbnailUrl(recipeDto.getThumbnailUrl());
+                            newRecipe.setArea(recipeDto.getArea());
+                            newRecipe.setCategory(recipeDto.getCategory());
+                            newRecipe.setInstructions(recipeDto.getInstructions());
+                            
+                            // Set ingredients and measures using helper methods
+                            newRecipe.setIngredientsList(recipeDto.getIngredients());
+                            newRecipe.setMeasuresList(recipeDto.getMeasures());
+                            
+                            return recipeRepository.save(newRecipe);
+                        } catch (Exception e) {
+                            logger.error("Error creating new recipe: {}", e.getMessage());
+                            throw new RuntimeException("Failed to create recipe: " + e.getMessage());
+                        }
+                    });
 
             SavedRecipe savedRecipe = new SavedRecipe();
             savedRecipe.setUser(user);
             savedRecipe.setRecipe(recipe);
             savedRecipe.setSavedAt(LocalDateTime.now());
-            
             savedRecipeRepository.save(savedRecipe);
-            logger.info("Successfully saved recipe {} for user {}", recipeId, userId);
 
             return convertToDto(recipe);
-            
-        } catch (ResourceNotFoundException e) {
-            logger.error("User not found error: {}", e.getMessage());
-            throw e;
         } catch (Exception e) {
-            logger.error("Error saving recipe: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to save recipe", e);
+            logger.error("Error saving recipe: {}", e.getMessage());
+            throw new RuntimeException("Failed to save recipe: " + e.getMessage());
         }
-    }
-
-    private Recipe createNewRecipe(String recipeId, RecipeDto recipeDto) {
-        Recipe newRecipe = new Recipe();
-        newRecipe.setExternalId(recipeId);
-        newRecipe.setTitle(recipeDto.getTitle());
-        newRecipe.setDescription(recipeDto.getDescription());
-        newRecipe.setThumbnailUrl(recipeDto.getThumbnailUrl());
-        newRecipe.setArea(recipeDto.getArea());
-        newRecipe.setCategory(recipeDto.getCategory());
-        newRecipe.setInstructions(recipeDto.getInstructions());
-        newRecipe.setIngredientsList(recipeDto.getIngredients());
-        newRecipe.setMeasuresList(recipeDto.getMeasures());
-        
-        return recipeRepository.save(newRecipe);
-    }
-
-    private RecipeDto convertSavedRecipeToDto(SavedRecipe savedRecipe) {
-        Recipe recipe = savedRecipe.getRecipe();
-        RecipeDto dto = new RecipeDto();
-        dto.setId(recipe.getExternalId());
-        dto.setTitle(recipe.getTitle());
-        dto.setDescription(recipe.getDescription());
-        dto.setThumbnailUrl(recipe.getThumbnailUrl());
-        dto.setArea(recipe.getArea());
-        dto.setCategory(recipe.getCategory());
-        dto.setInstructions(recipe.getInstructions());
-        dto.setIngredients(recipe.getIngredientsList());
-        dto.setMeasures(recipe.getMeasuresList());
-        return dto;
     }
 
     public void unsaveRecipe(Long userId, String recipeId) {

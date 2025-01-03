@@ -3,9 +3,7 @@ import 'package:provider/provider.dart';
 import 'dart:async';
 import '../../core/models/recipe.dart';
 import '../../core/services/recipe_service.dart';
-import '../../core/services/auth_service.dart';
 import '../../core/services/saved_recipe_service.dart';
-import '../widgets/chat_floating_button.dart';
 import '../widgets/recipe_card.dart';
 import '../widgets/dialogs/recipe_details_dialog.dart';
 import 'package:flutter/gestures.dart';
@@ -24,8 +22,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   bool _isLoading = false;
   Timer? _debounce;
   String? _selectedIngredient;
-  String? _currentRole;
-  int? _userId;
+
   final ScrollController _ingredientScrollController = ScrollController();
 
   // Daftar bahan populer dengan icon
@@ -91,7 +88,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
   @override
   void initState() {
     super.initState();
-    print('ExploreScreen initialized');
     _loadRecipes();
   }
 
@@ -101,27 +97,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
     _ingredientScrollController.dispose(); // Tambahkan ini
     _debounce?.cancel();
     super.dispose();
-    _loadUserData();
-  }
-
-  Future<void> _loadUserData() async {
-    try {
-      final authService = context.read<AuthService>();
-      final userIdStr = await authService.getCurrentUserId();
-      final currentRole = await authService.getCurrentUserRole();
-
-      print('Received userId from AuthService: $currentRole' );
-      print('Received userId from AuthService: $userIdStr (type: ${userIdStr?.runtimeType})');
-      
-      if (mounted) {
-        setState(() {
-          _userId = userIdStr != null ? int.parse(userIdStr.toString()) : null;
-          _currentRole = currentRole;
-        });
-      }
-    } catch (e) {
-      print('Error loading user data: $e');
-    }
   }
 
   Future<void> _loadRecipes() async {
@@ -467,26 +442,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
             ),
           ),
         ),
-      ),
-      floatingActionButton: Builder(
-        builder: (context) {
-          if (_userId == null) {
-            print('UserId is null, not showing chat button');
-            return const SizedBox.shrink();
-          }
-          return Theme(
-            data: Theme.of(context).copyWith(
-              floatingActionButtonTheme: const FloatingActionButtonThemeData(
-                backgroundColor: Colors.purple,
-                foregroundColor: Colors.white,
-              ),
-            ),
-            child: ChatFloatingButton(
-              userId: _userId!,
-              currentRole: _currentRole!,
-            ),
-          );
-        },
       ),
     );
   }

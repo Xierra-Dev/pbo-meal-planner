@@ -21,90 +21,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _has8Characters = false;
   bool _hasNumber = false;
   bool _hasSymbol = false;
-
-  String _selectedAccountType = 'REGULAR_USER';  // Default value
-
-    // Update the build method to include account type selection
-    Widget _buildAccountTypeSelection() {
-        return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-                const Text(
-                    'Select Account Type:',
-                    style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                    ),
-                ),
-                const SizedBox(height: 12),
-                
-                // Free User Option
-                _buildAccountTypeOption(
-                    title: 'Free User',
-                    description: 'Basic features and recipes',
-                    value: 'REGULAR_USER',
-                ),
-                
-                // Premium User Option
-                _buildAccountTypeOption(
-                    title: 'Premium User (\$5/month)',
-                    description: 'Access chatbot',
-                    value: 'PREMIUM_USER',
-                ),
-                
-                // Admin Option
-                _buildAccountTypeOption(
-                    title: 'Admin',
-                    description: 'Professional account as editor',
-                    value: 'ADMIN',
-                ),
-            ],
-        );
-    }
-
-    Widget _buildAccountTypeOption({
-        required String title,
-        required String description,
-        required String value,
-    }) {
-        return Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            decoration: BoxDecoration(
-                border: Border.all(
-                    color: _selectedAccountType == value 
-                        ? Theme.of(context).primaryColor 
-                        : Colors.grey[300]!,
-                ),
-                borderRadius: BorderRadius.circular(12),
-            ),
-            child: RadioListTile<String>(
-                title: Text(
-                    title,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text(description),
-                value: value,
-                groupValue: _selectedAccountType,
-                onChanged: (String? newValue) {
-                    setState(() {
-                        _selectedAccountType = newValue!;
-                    });
-                },
-                activeColor: Theme.of(context).primaryColor,
-            ),
-        );
-    }
-
+  bool _hasUppercase = false;
+  bool _hasLowercase = false;
+  String _selectedUserType = 'REGULAR'; // Default to REGULAR
 
   final AuthService _authService = AuthService();
 
-  // Di dalam _handleRegister()
+  @override
+  void initState() {
+    super.initState();
+    _passwordController.addListener(() {
+      _checkPasswordRequirements(_passwordController.text);
+    });
+  }
+
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -112,10 +50,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     try {
       await _authService.register(
-        _usernameController.text.trim(),
-        _emailController.text.trim(),
-        _passwordController.text,
-        _selectedAccountType,
+        username: _usernameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        firstName: _firstNameController.text.trim(),
+        lastName: _lastNameController.text.trim(),
+        userType: _selectedUserType,
       );
 
       if (mounted) {
@@ -143,7 +83,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       height: 150,
                       child: Lottie.asset(
                         'assets/animations/success.json',
-                        repeat: true, // Set to true untuk looping
+                        repeat: true,
                         animate: true,
                       ),
                     ),
@@ -187,7 +127,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         );
                       },
                       child: Text(
-                        'Welcome to NutriGuide, ${_usernameController.text}!\nYour account has been created successfully.',
+                        'Welcome to NutriGuide, ${_firstNameController.text}!\n'
+                        'Your ${_selectedUserType.toLowerCase()} account has been created successfully.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 16,
@@ -345,6 +286,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void _checkPasswordRequirements(String password) {
     setState(() {
       _has8Characters = password.length >= 8;
+      _hasUppercase = password.contains(RegExp(r'[A-Z]'));
+      _hasLowercase = password.contains(RegExp(r'[a-z]'));
       _hasNumber = password.contains(RegExp(r'[0-9]'));
       _hasSymbol = password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
     });
@@ -356,10 +299,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     super.dispose();
   }
 
-    @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
@@ -384,7 +329,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
           ),
 
-          // Di dalam Stack setelah background blur
+          // Back Button
           Positioned(
             top: 24,
             left: 24,
@@ -463,40 +408,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 padding: const EdgeInsets.all(32.0),
                 child: Row(
                   children: [
-                    // Left Side - Image/Illustration
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(32.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Image.asset(
-                              'assets/images/logo.png',
-                              height: 200,
-                            ),
-                            const SizedBox(height: 32),
-                            Text(
-                              'Join Our Culinary Community',
-                              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Discover, save, and share amazing recipes with food lovers around the world',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: Colors.white,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    // Right Side - Registration Form
+                    // Left Side - Register Form
                     Expanded(
                       child: Card(
                         elevation: 4,
@@ -511,7 +423,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                // Header
+                                // Logo
                                 Icon(
                                   Icons.restaurant_menu,
                                   size: 64,
@@ -525,15 +437,73 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Join NutriGuide and start your healthy journey',
+                                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                    color: Colors.grey[600],
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
                                 const SizedBox(height: 32),
+
+                                // First Name and Last Name Row
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: TextFormField(
+                                        controller: _firstNameController,
+                                        decoration: InputDecoration(
+                                          labelText: 'First Name',
+                                          hintText: 'Enter your first name',
+                                          prefixIcon: const Icon(Icons.person_outline),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          filled: true,
+                                          fillColor: Colors.grey[50],
+                                        ),
+                                        validator: (value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'Please enter your first name';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: TextFormField(
+                                        controller: _lastNameController,
+                                        decoration: InputDecoration(
+                                          labelText: 'Last Name',
+                                          hintText: 'Enter your last name',
+                                          prefixIcon: const Icon(Icons.person_outline),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          filled: true,
+                                          fillColor: Colors.grey[50],
+                                        ),
+                                        validator: (value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'Please enter your last name';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
 
                                 // Username Field
                                 TextFormField(
                                   controller: _usernameController,
                                   decoration: InputDecoration(
                                     labelText: 'Username',
-                                    hintText: 'Choose a unique username',
-                                    prefixIcon: const Icon(Icons.person_outline),
+                                    hintText: 'Choose a username',
+                                    prefixIcon: const Icon(Icons.person),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
@@ -565,7 +535,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   ),
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
-                                      return 'Please enter your email';
+                                      return 'Please enter an email';
                                     }
                                     if (!value.contains('@')) {
                                       return 'Please enter a valid email';
@@ -574,16 +544,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   },
                                 ),
                                 const SizedBox(height: 16),
-                                _buildAccountTypeSelection(),
-                                const SizedBox(height: 16),
-                                // Password Field
+
+                                // Password Fields
                                 TextFormField(
                                   controller: _passwordController,
                                   obscureText: _obscurePassword,
-                                  onChanged: _checkPasswordRequirements,
                                   decoration: InputDecoration(
                                     labelText: 'Password',
-                                    hintText: 'Create a strong password',
+                                    hintText: 'Create a password',
                                     prefixIcon: const Icon(Icons.lock_outline),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
@@ -601,12 +569,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       },
                                     ),
                                   ),
+                                  onChanged: _checkPasswordRequirements,
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
                                       return 'Please enter a password';
                                     }
-                                    if (!_has8Characters || !_hasNumber || !_hasSymbol) {
-                                      return 'Please meet all password requirements';
+                                    if (!_has8Characters ||
+                                        !_hasUppercase ||
+                                        !_hasLowercase ||
+                                        !_hasNumber ||
+                                        !_hasSymbol) {
+                                      return 'Password does not meet requirements';
                                     }
                                     return null;
                                   },
@@ -615,10 +588,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                                 // Password Requirements
                                 Container(
-                                  padding: const EdgeInsets.all(12),
+                                  padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
                                     color: Colors.grey[50],
                                     borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.grey[300]!),
                                   ),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -626,24 +600,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       const Text(
                                         'Password Requirements:',
                                         style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                       const SizedBox(height: 8),
                                       RequirementItem(
-                                        text: 'At least 8 characters',
                                         isMet: _has8Characters,
+                                        text: 'At least 8 characters',
                                       ),
-                                      const SizedBox(height: 4),
                                       RequirementItem(
-                                        text: 'Contains a number',
+                                        isMet: _hasUppercase,
+                                        text: 'Contains an uppercase letter',
+                                      ),
+                                      RequirementItem(
                                         isMet: _hasNumber,
+                                        text: 'Contains a number',
                                       ),
-                                      const SizedBox(height: 4),
                                       RequirementItem(
-                                        text: 'Contains a symbol',
                                         isMet: _hasSymbol,
+                                        text: 'Contains a symbol',
                                       ),
                                     ],
                                   ),
@@ -656,7 +631,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   obscureText: _obscureConfirmPassword,
                                   decoration: InputDecoration(
                                     labelText: 'Confirm Password',
-                                    hintText: 'Re-enter your password',
+                                    hintText: 'Confirm your password',
                                     prefixIcon: const Icon(Icons.lock_outline),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
@@ -684,7 +659,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     return null;
                                   },
                                 ),
-                                const SizedBox(height: 32),
+                                const SizedBox(height: 16),
 
                                 // Register Button
                                 ElevatedButton(
@@ -744,6 +719,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ],
                             ),
                           ),
+                        ),
+                      ),
+                    ),
+
+                    // Right Side - Image/Illustration
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(32.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Image.asset(
+                              'assets/images/logo.png',
+                              height: 200,
+                            ),
+                            const SizedBox(height: 32),
+                            Text(
+                              'Start Your Healthy Journey',
+                              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Create your account and discover personalized nutrition guidance',
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: Colors.white,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
                         ),
                       ),
                     ),

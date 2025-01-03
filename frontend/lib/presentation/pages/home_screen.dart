@@ -4,7 +4,6 @@ import '../../core/models/recipe.dart';
 import '../../core/services/recipe_service.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/saved_recipe_service.dart';
-import '../widgets/chat_floating_button.dart';
 import 'explore_screen.dart';
 import 'planner_screen.dart';
 import 'saved_recipes_screen.dart';
@@ -14,6 +13,8 @@ import '../widgets/recipe_card.dart';
 import '../widgets/popup_recipe_grid.dart';
 import '../widgets/dialogs/recipe_details_dialog.dart';
 import '../widgets/dialogs/settings_dialog.dart';
+import '../widgets/chat_bot.dart';
+import '../widgets/chat_bubble_button.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,8 +25,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
-  int? _userId;
-  String? _currentRole;
 
   final List<Widget> _screens = [
     const HomeContent(),
@@ -33,34 +32,6 @@ class _HomeScreenState extends State<HomeScreen> {
     const SavedRecipesScreen(),
     const PlannerScreen(),
   ];
-
-  void initState() {
-    super.initState();
-    print('HomeScreen initialized');
-    _loadUserData();
-  }
-
-  
-
-  Future<void> _loadUserData() async {
-    try {
-      final authService = context.read<AuthService>();
-      final userIdStr = await authService.getCurrentUserId();
-      final currentRole = await authService.getCurrentUserRole();
-
-      print('Received userId from AuthService: $currentRole' );
-      print('Received userId from AuthService: $userIdStr (type: ${userIdStr?.runtimeType})');
-      
-      if (mounted) {
-        setState(() {
-          _userId = userIdStr != null ? int.parse(userIdStr.toString()) : null;
-          _currentRole = currentRole;
-        });
-      }
-    } catch (e) {
-      print('Error loading user data: $e');
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -148,25 +119,36 @@ class _HomeScreenState extends State<HomeScreen> {
                                       fontSize: 20,
                                     ),
                                   ),
-                                  if (_currentRole == 'premium_user') ...[
-                                    const SizedBox(width: 4),
-                                    const Padding(
-                                      padding: EdgeInsets.only(left: 2),
-                                      child: Icon(
-                                        Icons.star,
-                                        color: Color.fromARGB(255, 227, 175, 1),
-                                        size: 20,
+                                  const SizedBox(width: 4),
+                                  if (authService.isPremiumUser())
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.amber[100],
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: Colors.amber[200]!),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.star, color: Colors.amber[700], size: 12),
+                                          const SizedBox(width: 2),
+                                          Text(
+                                            'PREMIUM',
+                                            style: TextStyle(
+                                              color: Colors.amber[700],
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 10,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                  ],
                                 ],
                               ),
                             ),
                             const SizedBox(width: 4),
-                            Icon(
-                              Icons.arrow_drop_down,
-                              color: Colors.grey[600],
-                            ),
+                            Icon(Icons.arrow_drop_down, color: Colors.grey[600]),
                           ],
                         ),
                       ),
@@ -329,7 +311,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             break;
                         }
                       },
-                    )
+                    ),
                   ],
                 ),
               ),
@@ -339,34 +321,26 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      body: Stack(
         children: [
-          // Main Content Area
-          Expanded(
-            child: _screens[_selectedIndex],
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Main Content Area
+              Expanded(
+                child: _screens[_selectedIndex],
+              ),
+            ],
+          ),
+          
+          // Chat Bubble
+          Consumer<AuthService>(
+            builder: (context, authService, _) {
+              final bool isPremium = authService.isPremiumUser();
+              return ChatBubbleButton(isPremium: isPremium);
+            },
           ),
         ],
-      ),
-      floatingActionButton: Builder(
-        builder: (context) {
-          if (_userId == null) {
-            print('UserId is null, not showing chat button');
-            return const SizedBox.shrink();
-          }
-          return Theme(
-            data: Theme.of(context).copyWith(
-              floatingActionButtonTheme: const FloatingActionButtonThemeData(
-                backgroundColor: Colors.purple,
-                foregroundColor: Colors.white,
-              ),
-            ),
-            child: ChatFloatingButton(
-              userId: _userId!,
-              currentRole: _currentRole!,
-            ),
-          );
-        },
       ),
     );
   }

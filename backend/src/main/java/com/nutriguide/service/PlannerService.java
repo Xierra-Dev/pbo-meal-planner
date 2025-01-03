@@ -35,6 +35,7 @@ public class PlannerService {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("User not found"));
     
+            // Save or update recipe
             Recipe recipe = recipeRepository.findByExternalId(recipeId)
                     .orElseGet(() -> {
                         Recipe newRecipe = new Recipe();
@@ -42,8 +43,25 @@ public class PlannerService {
                         return newRecipe;
                     });
             
-            // Update recipe with all fields
-            updateRecipeFromDto(recipe, recipeDto);
+            // Update recipe details
+            recipe.setTitle(recipeDto.getTitle() != null ? recipeDto.getTitle() : "");
+            recipe.setDescription(recipeDto.getDescription() != null ? recipeDto.getDescription() : "");
+            recipe.setThumbnailUrl(recipeDto.getThumbnailUrl() != null ? recipeDto.getThumbnailUrl() : "");
+            recipe.setArea(recipeDto.getArea() != null ? recipeDto.getArea() : "");
+            recipe.setCategory(recipeDto.getCategory() != null ? recipeDto.getCategory() : "");
+            recipe.setInstructions(recipeDto.getInstructions() != null ? recipeDto.getInstructions() : "");
+            
+            if (recipeDto.getIngredients() != null && !recipeDto.getIngredients().isEmpty()) {
+                recipe.setIngredientsList(recipeDto.getIngredients());
+            }
+            
+            if (recipeDto.getMeasures() != null && !recipeDto.getMeasures().isEmpty()) {
+                recipe.setMeasuresList(recipeDto.getMeasures());
+            }
+            
+            recipe.setCookingTime(recipeDto.getCookingTime());
+            
+            System.out.println("Saving recipe with title: " + recipe.getTitle());
             recipe = recipeRepository.save(recipe);
     
             Planner planner = new Planner();
@@ -55,30 +73,9 @@ public class PlannerService {
             
             return convertToDto(planner);
         } catch (Exception e) {
+            System.out.println("Error adding to plan: " + e.getMessage());
+            e.printStackTrace();
             throw new RuntimeException("Failed to add recipe to plan: " + e.getMessage());
-        }
-    }
-
-    private void updateRecipeFromDto(Recipe recipe, RecipeDto dto) {
-        recipe.setTitle(dto.getTitle() != null ? dto.getTitle() : "");
-        recipe.setDescription(dto.getDescription() != null ? dto.getDescription() : "");
-        recipe.setThumbnailUrl(dto.getThumbnailUrl() != null ? dto.getThumbnailUrl() : "");
-        recipe.setArea(dto.getArea() != null ? dto.getArea() : "");
-        recipe.setCategory(dto.getCategory() != null ? dto.getCategory() : "");
-        recipe.setInstructions(dto.getInstructions() != null ? dto.getInstructions() : "");
-        recipe.setCookingTime(dto.getCookingTime());
-        recipe.setHealthScore(dto.getHealthScore());
-        
-        if (dto.getIngredients() != null && !dto.getIngredients().isEmpty()) {
-            recipe.setIngredientsList(dto.getIngredients());
-        }
-        
-        if (dto.getMeasures() != null && !dto.getMeasures().isEmpty()) {
-            recipe.setMeasuresList(dto.getMeasures());
-        }
-
-        if (dto.getNutritionInfo() != null) {
-            recipe.setNutritionInfoMap(dto.getNutritionInfo());
         }
     }
 
