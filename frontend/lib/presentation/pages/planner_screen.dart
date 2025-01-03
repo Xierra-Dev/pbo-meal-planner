@@ -141,7 +141,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
         preferredSize: const Size.fromHeight(kToolbarHeight),
         child: Center(
           child: Container(
-            constraints: const BoxConstraints(maxWidth: 800),
+            constraints: const BoxConstraints(maxWidth: 1600),
             child: AppBar(
               automaticallyImplyLeading: false,
               title: Padding(
@@ -200,7 +200,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
+          constraints: const BoxConstraints(maxWidth: 1600),
           child: RefreshIndicator(
             onRefresh: _loadPlannedMeals,
             child: ListView.builder(

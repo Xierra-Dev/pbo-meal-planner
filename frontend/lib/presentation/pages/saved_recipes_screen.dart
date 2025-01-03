@@ -33,7 +33,7 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
         preferredSize: const Size.fromHeight(kToolbarHeight),
         child: Center(
           child: Container(
-            constraints: const BoxConstraints(maxWidth: 800), // Sama dengan konten
+            constraints: const BoxConstraints(maxWidth: 1600), // Sama dengan konten
             child: AppBar(
               automaticallyImplyLeading: false,
               title: const Padding(
@@ -48,7 +48,7 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
+          constraints: const BoxConstraints(maxWidth: 1600),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
             child: FutureBuilder<List<Recipe>>(

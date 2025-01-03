@@ -48,16 +48,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
       'icon': Icons.breakfast_dining_outlined,
     },
     {
-      'name': 'Pasta',
-      'icon': Icons.ramen_dining_outlined,
-    },
-    {
       'name': 'Tomato',
       'icon': Icons.local_florist_outlined,
-    },
-    {
-      'name': 'Mushroom',
-      'icon': Icons.grass_outlined,
     },
     {
       'name': 'Egg',
@@ -216,7 +208,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     return Scaffold(
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
+          constraints: const BoxConstraints(maxWidth: 1600),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 16.0),
             child: Column(

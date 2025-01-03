@@ -22,6 +22,10 @@ import java.util.Map;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+import com.nutriguide.repository.UserHealthDataRepository;
+import com.nutriguide.repository.UserGoalRepository;
+import com.nutriguide.repository.UserAllergyRepository;
+
 
 @Service
 @Validated
@@ -33,6 +37,15 @@ public class UserService {
 
     @Autowired
     private EntityManager entityManager;
+
+    @Autowired
+    private UserHealthDataRepository userHealthDataRepository;
+
+    @Autowired
+    private UserGoalRepository userGoalRepository;
+
+    @Autowired
+    private UserAllergyRepository userAllergyRepository;
 
     // Create
     @Transactional
@@ -264,6 +277,22 @@ public class UserService {
         }
         
         userRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void deleteUserHealthData(Long userId) {
+        User user = findById(userId);
+        userHealthDataRepository.deleteByUserId(userId);
+    }
+    
+    public void deleteUserGoals(Long userId) {
+        User user = findById(userId);
+        userGoalRepository.deleteByUserId(userId);
+    }
+    
+    public void deleteUserAllergies(Long userId) {
+        User user = findById(userId);
+        userAllergyRepository.deleteByUserId(userId);
     }
 
     public User getUserById(Long userId) {

@@ -15,6 +15,9 @@ import '../widgets/dialogs/recipe_details_dialog.dart';
 import '../widgets/dialogs/settings_dialog.dart';
 import '../widgets/chat_bot.dart';
 import '../widgets/chat_bubble_button.dart';
+import '../widgets/sidebars/left_sidebar.dart';
+import '../widgets/sidebars/right_sidebar.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -36,13 +39,14 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
+    final screenWidth = MediaQuery.of(context).size.width;
     
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(kToolbarHeight),
         child: Center(
           child: Container(
-            constraints: const BoxConstraints(maxWidth: 1200),
+            constraints: const BoxConstraints(maxWidth: 1400),
             child: AppBar(
               automaticallyImplyLeading: false,
               title: Padding(
@@ -323,16 +327,36 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Stack(
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Main Content Area
-              Expanded(
-                child: _screens[_selectedIndex],
-              ),
-            ],
+          // Sidebars Container
+          if (screenWidth > 1200)
+            Row(
+              children: [
+                // Left Sidebar - Fixed position
+                const SizedBox(
+                  width: 250,
+                  child: LeftSidebar(),
+                ),
+                
+                // Spacer for main content
+                const Spacer(),
+                
+                // Right Sidebar - Fixed position
+                const SizedBox(
+                  width: 250,
+                  child: RightSidebar(),
+                ),
+              ],
+            ),
+            
+          // Main Content - Scrollable
+          Padding(
+            padding: EdgeInsets.only(
+              left: screenWidth > 1200 ? 300 : 0,
+              right: screenWidth > 1200 ? 300 : 0,
+            ),
+            child: _screens[_selectedIndex],
           ),
-          
+
           // Chat Bubble
           Consumer<AuthService>(
             builder: (context, authService, _) {
@@ -357,528 +381,288 @@ class _HomeContentState extends State<HomeContent> {
   final ScrollController _recommendedController = ScrollController();
   final ScrollController _popularController = ScrollController();
 
-  void _scrollLeft(ScrollController controller) {
-    controller.animateTo(
-      controller.offset - 500,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
-  }
-
-  void _scrollRight(ScrollController controller) {
-    controller.animateTo(
-      controller.offset + 500,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
-  }
-
-  @override
-  void dispose() {
-    _recommendedController.dispose();
-    _popularController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
     return SingleChildScrollView(
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Recommended Section
-                _buildSectionHeader(
-                  context,
-                  title: 'Recommended',
-                  onSeeAll: () {
-                    final recipes = context.read<RecipeService>().getRecommendedRecipes(6);
-                    showDialog(
-                      context: context,
-                      builder: (context) => FutureBuilder<List<Recipe>>(
-                        future: recipes,
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
-                            return const Center(child: CircularProgressIndicator());
-                          }
-                          return PopupRecipeGrid(
-                            title: 'Recommended Recipes',
-                            recipes: snapshot.data ?? [],
-                          );
-                        },
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  height: 380,
-                  child: Stack(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [          
+          // Main content
+          Expanded(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1600),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Consumer<RecipeService>(
-                        builder: (context, recipeService, child) {
-                          return FutureBuilder<List<Recipe>>(
-                            future: recipeService.getRecommendedRecipes(7),
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState == ConnectionState.waiting) {
-                                return const Center(child: CircularProgressIndicator());
-                              }
-                              final recipes = snapshot.data ?? [];
-                              return GridView.builder(
-                                controller: _recommendedController,
-                                scrollDirection: Axis.horizontal,
-                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 1,
-                                  childAspectRatio: 1.15,
-                                  mainAxisSpacing: 16,
-                                ),
-                                itemCount: recipes.length,
-                                itemBuilder: (context, index) {
-                                  return RecipeCard(
-                                    recipe: recipes[index],
-                                    titleFontSize: 16,
-                                    isSaved: context.watch<SavedRecipeService>().isRecipeSaved(recipes[index].id),
-                                    onTap: (recipe) {
-                                      showDialog(
-                                        context: context,
-                                        builder: (context) => RecipeDetailsDialog(
-                                          recipe: recipe,
-                                          isSaved: context.read<SavedRecipeService>().isRecipeSaved(recipe.id),
-                                          onSaveRecipe: (recipe, isSaved) async {
-                                            final savedRecipeService = context.read<SavedRecipeService>();
-                                            try {
-                                              if (isSaved) {
-                                                await savedRecipeService.saveRecipe(recipe);
-                                                if (mounted) {
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    const SnackBar(
-                                                      content: Text('Recipe saved successfully'),
-                                                      backgroundColor: Colors.green,
-                                                      duration: Duration(seconds: 2),
-                                                    ),
-                                                  );
-                                                }
-                                              } else {
-                                                await savedRecipeService.unsaveRecipe(recipe.id);
-                                                if (mounted) {
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    const SnackBar(
-                                                      content: Text('Recipe removed from saved'),
-                                                      backgroundColor: Colors.red,
-                                                      duration: Duration(seconds: 2),
-                                                    ),
-                                                  );
-                                                }
-                                              }
-                                            } catch (e) {
-                                              if (mounted) {
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text('Failed to ${isSaved ? 'save' : 'unsave'} recipe'),
-                                                    backgroundColor: Colors.red,
-                                                  ),
-                                                );
-                                              }
-                                            }
-                                          },
-                                        ),
-                                      );
-                                    },
-                                    onSaveRecipe: (recipe, isSaved) async {
-                                      final savedRecipeService = context.read<SavedRecipeService>();
-                                      try {
-                                        if (!isSaved) {
-                                          await savedRecipeService.saveRecipe(recipe);
-                                          if (mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(
-                                                content: Text('Recipe saved successfully'),
-                                                backgroundColor: Colors.green,
-                                                duration: Duration(seconds: 2),
-                                              ),
-                                            );
-                                          }
-                                        } else {
-                                          await savedRecipeService.unsaveRecipe(recipe.id);
-                                          if (mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(
-                                                content: Text('Recipe removed from saved'),
-                                                backgroundColor: Colors.red,
-                                                duration: Duration(seconds: 2),
-                                              ),
-                                            );
-                                          }
-                                        }
-                                      } catch (e) {
-                                        if (mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text('Failed to ${!isSaved ? 'save' : 'unsave'} recipe'),
-                                              backgroundColor: Colors.red,
-                                            ),
-                                          );
-                                        }
-                                      }
-                                    },
-                                  );
-                                },
-                              );
-                            },
-                          );
-                        },
-                      ),
-                      Positioned.fill(
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.only(left: 8),
-                              alignment: Alignment.centerLeft,
-                              child: CircleAvatar(
-                                backgroundColor: Colors.white.withOpacity(0.9),
-                                child: IconButton(
-                                  icon: const Icon(Icons.chevron_left),
-                                  onPressed: () => _scrollLeft(_recommendedController),
-                                  color: Colors.black87,
-                                ),
-                              ),
-                            ),
-                            const Spacer(),
-                            Container(
-                              padding: const EdgeInsets.only(right: 8),
-                              alignment: Alignment.centerRight,
-                              child: CircleAvatar(
-                                backgroundColor: Colors.white.withOpacity(0.9),
-                                child: IconButton(
-                                  icon: const Icon(Icons.chevron_right),
-                                  onPressed: () => _scrollRight(_recommendedController),
-                                  color: Colors.black87,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                // Popular Section
-                _buildSectionHeader(
-                  context,
-                  title: 'Popular',
-                  onSeeAll: () {
-                    final recipes = context.read<RecipeService>().getPopularRecipes(6);
-                    showDialog(
-                      context: context,
-                      builder: (context) => FutureBuilder<List<Recipe>>(
-                        future: recipes,
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
-                            return const Center(child: CircularProgressIndicator());
-                          }
-                          return PopupRecipeGrid(
-                            title: 'Popular Recipes',
-                            recipes: snapshot.data ?? [],
-                          );
-                        },
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  height: 380,
-                  child: Stack(
-                    children: [
-                      Consumer<RecipeService>(
-                        builder: (context, recipeService, child) {
-                          return FutureBuilder<List<Recipe>>(
-                            future: recipeService.getPopularRecipes(7),
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState == ConnectionState.waiting) {
-                                return const Center(child: CircularProgressIndicator());
-                              }
-                              final recipes = snapshot.data ?? [];
-                              return GridView.builder(
-                                controller: _popularController,
-                                scrollDirection: Axis.horizontal,
-                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 1,
-                                  childAspectRatio: 1.15,
-                                  mainAxisSpacing: 16,
-                                ),
-                                itemCount: recipes.length,
-                                itemBuilder: (context, index) {
-                                  return RecipeCard(
-                                    recipe: recipes[index],
-                                    titleFontSize: 16,
-                                    isSaved: context.watch<SavedRecipeService>().isRecipeSaved(recipes[index].id),
-                                    onTap: (recipe) {
-                                      showDialog(
-                                        context: context,
-                                        builder: (context) => RecipeDetailsDialog(
-                                          recipe: recipe,
-                                          isSaved: context.read<SavedRecipeService>().isRecipeSaved(recipe.id),
-                                          onSaveRecipe: (recipe, isSaved) async {
-                                            // Same save recipe handler as above
-                                            final savedRecipeService = context.read<SavedRecipeService>();
-                                            try {
-                                              if (isSaved) {
-                                                await savedRecipeService.saveRecipe(recipe);
-                                                if (mounted) {
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    const SnackBar(
-                                                      content: Text('Recipe saved successfully'),
-                                                      backgroundColor: Colors.green,
-                                                      duration: Duration(seconds: 2),
-                                                    ),
-                                                  );
-                                                }
-                                              } else {
-                                                await savedRecipeService.unsaveRecipe(recipe.id);
-                                                if (mounted) {
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    const SnackBar(
-                                                      content: Text('Recipe removed from saved'),
-                                                      backgroundColor: Colors.red,
-                                                      duration: Duration(seconds: 2),
-                                                    ),
-                                                  );
-                                                }
-                                              }
-                                            } catch (e) {
-                                              if (mounted) {
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text('Failed to ${isSaved ? 'save' : 'unsave'} recipe'),
-                                                    backgroundColor: Colors.red,
-                                                  ),
-                                                );
-                                              }
-                                            }
-                                          },
-                                        ),
-                                      );
-                                    },
-                                    onSaveRecipe: (recipe, isSaved) async {
-                                      // Same save recipe handler as above
-                                      final savedRecipeService = context.read<SavedRecipeService>();
-                                      try {
-                                        if (!isSaved) {
-                                          await savedRecipeService.saveRecipe(recipe);
-                                          if (mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(
-                                                content: Text('Recipe saved successfully'),
-                                                backgroundColor: Colors.green,
-                                                duration: Duration(seconds: 2),
-                                              ),
-                                            );
-                                          }
-                                        } else {
-                                          await savedRecipeService.unsaveRecipe(recipe.id);
-                                          if (mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(
-                                                content: Text('Recipe removed from saved'),
-                                                backgroundColor: Colors.red,
-                                                duration: Duration(seconds: 2),
-                                              ),
-                                            );
-                                          }
-                                        }
-                                      } catch (e) {
-                                        if (mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text('Failed to ${!isSaved ? 'save' : 'unsave'} recipe'),
-                                              backgroundColor: Colors.red,
-                                            ),
-                                          );
-                                        }
-                                      }
-                                    },
-                                  );
-                                },
-                              );
-                            },
-                          );
-                        },
-                      ),
-                      Positioned.fill(
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.only(left: 8),
-                              alignment: Alignment.centerLeft,
-                              child: CircleAvatar(
-                                backgroundColor: Colors.white.withOpacity(0.9),
-                                child: IconButton(
-                                  icon: const Icon(Icons.chevron_left),
-                                  onPressed: () => _scrollLeft(_popularController),
-                                  color: Colors.black87,
-                                ),
-                              ),
-                            ),
-                            const Spacer(),
-                            Container(
-                              padding: const EdgeInsets.only(right: 8),
-                              alignment: Alignment.centerRight,
-                              child: CircleAvatar(
-                                backgroundColor: Colors.white.withOpacity(0.9),
-                                child: IconButton(
-                                  icon: const Icon(Icons.chevron_right),
-                                  onPressed: () => _scrollRight(_popularController),
-                                  color: Colors.black87,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                // Recipe Feed
-                const Text(
-                  'Recipe Feed',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Consumer<RecipeService>(
-                  builder: (context, recipeService, child) {
-                    return FutureBuilder<List<Recipe>>(
-                      future: recipeService.getRandomRecipes(2),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
-                        }
-                        if (snapshot.hasError) {
-                          return Center(child: Text('Error: ${snapshot.error}'));
-                        }
-                        final recipes = snapshot.data ?? [];
-                        return GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio: 1,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                          ),
-                          itemCount: recipes.length,
-                          itemBuilder: (context, index) {
-                            return RecipeCard(
-                              recipe: recipes[index],
-                              titleFontSize: 16,
-                              isSaved: context.watch<SavedRecipeService>().isRecipeSaved(recipes[index].id),
-                              onTap: (recipe) {
-                                showDialog(
-                                  context: context,
-                                  builder: (context) => RecipeDetailsDialog(
-                                    recipe: recipe,
-                                    isSaved: context.read<SavedRecipeService>().isRecipeSaved(recipe.id),
-                                    onSaveRecipe: (recipe, isSaved) async {
-                                      // Same save recipe handler as above
-                                      final savedRecipeService = context.read<SavedRecipeService>();
-                                      try {
-                                        if (isSaved) {
-                                          await savedRecipeService.saveRecipe(recipe);
-                                          if (mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(
-                                                content: Text('Recipe saved successfully'),
-                                                backgroundColor: Colors.green,
-                                                duration: Duration(seconds: 2),
-                                              ),
-                                            );
-                                          }
-                                        } else {
-                                          await savedRecipeService.unsaveRecipe(recipe.id);
-                                          if (mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(
-                                                content: Text('Recipe removed from saved'),
-                                                backgroundColor: Colors.red,
-                                                duration: Duration(seconds: 2),
-                                              ),
-                                            );
-                                          }
-                                        }
-                                      } catch (e) {
-                                        if (mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text('Failed to ${isSaved ? 'save' : 'unsave'} recipe'),
-                                              backgroundColor: Colors.red,
-                                            ),
-                                          );
-                                        }
-                                      }
-                                    },
-                                  ),
+                      // Recommended Section
+                      _buildSectionHeader(
+                        context,
+                        title: 'Recommended',
+                        onSeeAll: () {
+                          final recipes = context.read<RecipeService>().getRecommendedRecipes(6);
+                          showDialog(
+                            context: context,
+                            builder: (context) => FutureBuilder<List<Recipe>>(
+                              future: recipes,
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState == ConnectionState.waiting) {
+                                  return const Center(child: CircularProgressIndicator());
+                                }
+                                return PopupRecipeGrid(
+                                  title: 'Recommended Recipes',
+                                  recipes: snapshot.data ?? [],
                                 );
                               },
-                              onSaveRecipe: (recipe, isSaved) async {
-                                // Same save recipe handler as above
-                                final savedRecipeService = context.read<SavedRecipeService>();
-                                try {
-                                  if (!isSaved) {
-                                    await savedRecipeService.saveRecipe(recipe);
-                                    if (mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('Recipe saved successfully'),
-                                          backgroundColor: Colors.green,
-                                          duration: Duration(seconds: 2),
-                                        ),
-                                      );
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        height: 380,
+                        child: Stack(
+                          children: [
+                            Consumer<RecipeService>(
+                              builder: (context, recipeService, child) {
+                                return FutureBuilder<List<Recipe>>(
+                                  future: recipeService.getRecommendedRecipes(7),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState == ConnectionState.waiting) {
+                                      return const Center(child: CircularProgressIndicator());
                                     }
-                                  } else {
-                                    await savedRecipeService.unsaveRecipe(recipe.id);
-                                    if (mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('Recipe removed from saved'),
-                                          backgroundColor: Colors.red,
-                                          duration: Duration(seconds: 2),
-                                        ),
-                                      );
-                                    }
-                                  }
-                                } catch (e) {
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Failed to ${!isSaved ? 'save' : 'unsave'} recipe'),
-                                        backgroundColor: Colors.red,
+                                    final recipes = snapshot.data ?? [];
+                                    return GridView.builder(
+                                      controller: _recommendedController,
+                                      scrollDirection: Axis.horizontal,
+                                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 1,
+                                        childAspectRatio: 1.15,
+                                        mainAxisSpacing: 16,
                                       ),
+                                      itemCount: recipes.length,
+                                      itemBuilder: (context, index) {
+                                        return RecipeCard(
+                                          recipe: recipes[index],
+                                          titleFontSize: 16,
+                                          isSaved: context.watch<SavedRecipeService>().isRecipeSaved(recipes[index].id),
+                                          onTap: (recipe) => _showRecipeDetails(context, recipe),
+                                          onSaveRecipe: (recipe, isSaved) => _handleSaveRecipe(context, recipe, isSaved),
+                                        );
+                                      },
                                     );
-                                  }
-                                }
+                                  },
+                                );
                               },
-                            );
-                          },
-                        );
-                      },
-                    );
-                  },
+                            ),
+                            _buildScrollButtons(_recommendedController),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+
+                      // Popular Section
+                      _buildSectionHeader(
+                        context,
+                        title: 'Popular',
+                        onSeeAll: () {
+                          final recipes = context.read<RecipeService>().getPopularRecipes(6);
+                          showDialog(
+                            context: context,
+                            builder: (context) => FutureBuilder<List<Recipe>>(
+                              future: recipes,
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState == ConnectionState.waiting) {
+                                  return const Center(child: CircularProgressIndicator());
+                                }
+                                return PopupRecipeGrid(
+                                  title: 'Popular Recipes',
+                                  recipes: snapshot.data ?? [],
+                                );
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        height: 380,
+                        child: Stack(
+                          children: [
+                            Consumer<RecipeService>(
+                              builder: (context, recipeService, child) {
+                                return FutureBuilder<List<Recipe>>(
+                                  future: recipeService.getPopularRecipes(7),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState == ConnectionState.waiting) {
+                                      return const Center(child: CircularProgressIndicator());
+                                    }
+                                    final recipes = snapshot.data ?? [];
+                                    return GridView.builder(
+                                      controller: _popularController,
+                                      scrollDirection: Axis.horizontal,
+                                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 1,
+                                        childAspectRatio: 1.15,
+                                        mainAxisSpacing: 16,
+                                      ),
+                                      itemCount: recipes.length,
+                                      itemBuilder: (context, index) {
+                                        return RecipeCard(
+                                          recipe: recipes[index],
+                                          titleFontSize: 16,
+                                          isSaved: context.watch<SavedRecipeService>().isRecipeSaved(recipes[index].id),
+                                          onTap: (recipe) => _showRecipeDetails(context, recipe),
+                                          onSaveRecipe: (recipe, isSaved) => _handleSaveRecipe(context, recipe, isSaved),
+                                        );
+                                      },
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                            _buildScrollButtons(_popularController),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+
+                      // Recipe Feed
+                      const Text(
+                        'Recipe Feed',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Consumer<RecipeService>(
+                        builder: (context, recipeService, child) {
+                          return FutureBuilder<List<Recipe>>(
+                            future: recipeService.getRandomRecipes(2),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                return const Center(child: CircularProgressIndicator());
+                              }
+                              final recipes = snapshot.data ?? [];
+                              return GridView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  childAspectRatio: 1,
+                                  crossAxisSpacing: 16,
+                                  mainAxisSpacing: 16,
+                                ),
+                                itemCount: recipes.length,
+                                itemBuilder: (context, index) {
+                                  return RecipeCard(
+                                    recipe: recipes[index],
+                                    titleFontSize: 16,
+                                    isSaved: context.watch<SavedRecipeService>().isRecipeSaved(recipes[index].id),
+                                    onTap: (recipe) => _showRecipeDetails(context, recipe),
+                                    onSaveRecipe: (recipe, isSaved) => _handleSaveRecipe(context, recipe, isSaved),
+                                  );
+                                },
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ],
+              ),
             ),
           ),
-        ),
+        ],
+      ),
+    );
+  }
+
+  void _showRecipeDetails(BuildContext context, Recipe recipe) {
+    showDialog(
+      context: context,
+      builder: (context) => RecipeDetailsDialog(
+        recipe: recipe,
+        isSaved: context.read<SavedRecipeService>().isRecipeSaved(recipe.id),
+        onSaveRecipe: (recipe, isSaved) => _handleSaveRecipe(context, recipe, isSaved),
+      ),
+    );
+  }
+
+  Future<void> _handleSaveRecipe(BuildContext context, Recipe recipe, bool isSaved) async {
+    final savedRecipeService = context.read<SavedRecipeService>();
+    try {
+      if (!isSaved) {
+        await savedRecipeService.saveRecipe(recipe);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Recipe saved successfully'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        await savedRecipeService.unsaveRecipe(recipe.id);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Recipe removed from saved'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to ${!isSaved ? 'save' : 'unsave'} recipe'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildScrollButtons(ScrollController controller) {
+    return Positioned.fill(
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.only(left: 8),
+            alignment: Alignment.centerLeft,
+            child: CircleAvatar(
+              backgroundColor: Colors.white.withOpacity(0.9),
+              child: IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: () => _scrollLeft(controller),
+                color: Colors.black87,
+              ),
+            ),
+          ),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.only(right: 8),
+            alignment: Alignment.centerRight,
+            child: CircleAvatar(
+              backgroundColor: Colors.white.withOpacity(0.9),
+              child: IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: () => _scrollRight(controller),
+                color: Colors.black87,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -904,6 +688,29 @@ class _HomeContentState extends State<HomeContent> {
         ),
       ],
     );
+  }
+
+  void _scrollLeft(ScrollController controller) {
+    controller.animateTo(
+      controller.offset - 500,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  void _scrollRight(ScrollController controller) {
+    controller.animateTo(
+      controller.offset + 500,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  @override
+  void dispose() {
+    _recommendedController.dispose();
+    _popularController.dispose();
+    super.dispose();
   }
 }
 

@@ -76,20 +76,81 @@ class AdminService {
     }
   }
 
-  Future<void> deleteUser(String userId) async {
-    try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl/admin/users/$userId'),
-        headers: {'Content-Type': 'application/json'},
-      );
+  Future<Map<String, String>> getHeaders() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token') ?? '';
+    
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+  }
 
-      if (response.statusCode != 200) {
-        throw Exception('Failed to delete user');
+  Future<void> deleteUser(String userId) async {
+  try {
+    print('Attempting to delete user with ID: $userId');
+    final headers = await getHeaders();
+
+    // 1. Delete user health data
+    try {
+      final deleteHealthResponse = await http.delete(
+        Uri.parse('$baseUrl/users/$userId/health'), // Endpoint disesuaikan
+        headers: headers,
+      );
+      print('Health data delete response: ${deleteHealthResponse.statusCode}');
+      
+      if (deleteHealthResponse.statusCode != 200 && deleteHealthResponse.statusCode != 404) {
+        throw Exception('Failed to delete health data: ${deleteHealthResponse.body}');
       }
     } catch (e) {
-      throw Exception('Failed to delete user: $e');
+      print('Error deleting health data: $e');
+      throw Exception('Failed to delete user: Health data must be deleted first');
     }
+
+    // 2. Delete user goals
+    try {
+      final deleteGoalsResponse = await http.delete(
+        Uri.parse('$baseUrl/users/$userId/goals'), // Endpoint disesuaikan
+        headers: headers,
+      );
+      print('Goals delete response: ${deleteGoalsResponse.statusCode}');
+    } catch (e) {
+      print('Error deleting goals: $e');
+    }
+
+    // 3. Delete user allergies
+    try {
+      final deleteAllergiesResponse = await http.delete(
+        Uri.parse('$baseUrl/users/$userId/allergies'), // Endpoint disesuaikan
+        headers: headers,
+      );
+      print('Allergies delete response: ${deleteAllergiesResponse.statusCode}');
+    } catch (e) {
+      print('Error deleting allergies: $e');
+    }
+
+    // 4. Finally delete the user
+    final deleteUserResponse = await http.delete(
+      Uri.parse('$baseUrl/admin/users/$userId'),
+      headers: headers,
+    );
+
+    print('User delete response: ${deleteUserResponse.statusCode}');
+    print('User delete body: ${deleteUserResponse.body}');
+
+    if (deleteUserResponse.statusCode != 200) {
+      final Map<String, dynamic> responseData = json.decode(deleteUserResponse.body);
+      final errorMessage = responseData['message'] ?? 'Failed to delete user';
+      throw Exception(errorMessage);
+    }
+
+    print('User deleted successfully');
+
+  } catch (e) {
+    print('Error in deleteUser: $e');
+    throw Exception('Failed to delete user: $e');
   }
+}
 
   Future<bool> checkAdminSession() async {
     // Get stored admin credentials from secure storage or shared preferences

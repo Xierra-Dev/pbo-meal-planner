@@ -213,17 +213,73 @@ class _UserPanelState extends State<UserPanel> {
     );
   }
 
-    void _showEditDialog(Map<String, dynamic> user) async {
-    final result = await showDialog(
-      context: context,
-      builder: (context) => EditUserDialog(
-        user: user,
-        onUserUpdated: () => _loadUsers(), // Tambahkan callback ini
+    void _showSuccessNotification(String message) {
+    if (!mounted) return;
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        backgroundColor: Colors.green.shade800,
+        duration: const Duration(seconds: 3),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        content: Row(
+          children: [
+            const Icon(
+              Icons.check_circle_outline_rounded,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Success!',
+                    style: TextStyle(
+                      color: Colors.green.shade100,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    message,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(
+                Icons.close,
+                color: Colors.white,
+                size: 20,
+              ),
+              onPressed: () {
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              },
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Future<void> _showEditDialog(Map<String, dynamic> user) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => EditUserDialog(user: user),
     );
 
     if (result == true) {
-      _loadUsers(); // Refresh data setelah update berhasil
+      _loadUsers();
+      _showSuccessNotification('User ${user['username']} has been updated successfully');
     }
   }
 
@@ -235,6 +291,7 @@ class _UserPanelState extends State<UserPanel> {
 
     if (result == true) {
       _loadUsers();
+      _showSuccessNotification('User ${user['username']} has been deleted successfully');
     }
   }
 }

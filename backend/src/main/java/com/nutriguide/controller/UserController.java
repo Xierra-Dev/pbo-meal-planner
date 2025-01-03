@@ -256,6 +256,69 @@ public class UserController {
         }
     }
 
+    // Delete user health data
+    @DeleteMapping("/{userId}/health")
+    public ResponseEntity<?> deleteUserHealthData(@PathVariable Long userId) {
+        try {
+            userService.deleteUserHealthData(userId);
+            return ResponseEntity.ok(Map.of(
+                "message", "User health data deleted successfully"
+            ));
+        } catch (ResourceNotFoundException e) {
+            return new ResponseEntity<>(
+                Map.of("error", e.getMessage()),
+                HttpStatus.NOT_FOUND
+            );
+        } catch (Exception e) {
+            return new ResponseEntity<>(
+                Map.of("error", "Failed to delete user health data"),
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    // Delete user goals
+    @DeleteMapping("/{userId}/goals")
+    public ResponseEntity<?> deleteUserGoals(@PathVariable Long userId) {
+        try {
+            userService.deleteUserGoals(userId);
+            return ResponseEntity.ok(Map.of(
+                "message", "User goals deleted successfully"
+            ));
+        } catch (ResourceNotFoundException e) {
+            return new ResponseEntity<>(
+                Map.of("error", e.getMessage()),
+                HttpStatus.NOT_FOUND
+            );
+        } catch (Exception e) {
+            return new ResponseEntity<>(
+                Map.of("error", "Failed to delete user goals"),
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    // Delete user allergies
+    @DeleteMapping("/{userId}/allergies")
+    public ResponseEntity<?> deleteUserAllergies(@PathVariable Long userId) {
+        try {
+            userService.deleteUserAllergies(userId);
+            return ResponseEntity.ok(Map.of(
+                "message", "User allergies deleted successfully"
+            ));
+        } catch (ResourceNotFoundException e) {
+            return new ResponseEntity<>(
+                Map.of("error", e.getMessage()),
+                HttpStatus.NOT_FOUND
+            );
+        } catch (Exception e) {
+            return new ResponseEntity<>(
+                Map.of("error", "Failed to delete user allergies"),
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
     // Profile Completion
     @GetMapping("/{userId}/profile-completion")
     public ResponseEntity<?> getProfileCompletion(@PathVariable Long userId) {
