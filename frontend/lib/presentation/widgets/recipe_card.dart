@@ -3,7 +3,6 @@ import '../../core/models/recipe.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/saved_recipe_service.dart';
 import '../../core/services/auth_service.dart';
-import '../../presentation/pages/upgrade_screen.dart';
 import '../widgets/dialogs/recipe_save_limit_dialog.dart';
 
 class RecipeCard extends StatelessWidget {

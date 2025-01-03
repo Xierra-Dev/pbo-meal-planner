@@ -24,6 +24,30 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    @PostMapping("/register")
+    public ResponseEntity<?> registerUser(@Valid @RequestBody User user) {
+        try {
+            User registeredUser = userService.registerUser(user);
+            return new ResponseEntity<>(
+                Map.of(
+                    "message", "Registration successful",
+                    "userId", registeredUser.getId()
+                ), 
+                HttpStatus.CREATED
+            );
+        } catch (UserAlreadyExistsException e) {
+            return new ResponseEntity<>(
+                Map.of("error", e.getMessage()),
+                HttpStatus.CONFLICT
+            );
+        } catch (Exception e) {
+            return new ResponseEntity<>(
+                Map.of("error", "Registration failed: " + e.getMessage()),
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
     // Create
     @PostMapping
     public ResponseEntity<?> createUser(@Valid @RequestBody User user, 

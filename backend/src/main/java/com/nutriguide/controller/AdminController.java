@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.nutriguide.enums.UserType;
 
 @RestController
 @RequestMapping("/api/admin")

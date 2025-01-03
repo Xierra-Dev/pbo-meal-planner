@@ -5,7 +5,6 @@ import '../../core/services/profile_service.dart';
 import 'package:intl/intl.dart';
 import '../widgets/chat_bubble_button.dart';  
 import '../pages/upgrade_screen.dart';
-import '../widgets/premium_badge.dart';
 import 'dart:ui';
 
 class ProfileScreen extends StatefulWidget {
@@ -152,11 +151,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   decoration: BoxDecoration(
                                     color: Theme.of(context).primaryColor,
                                     shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.camera_alt,
-                                    color: Colors.white,
-                                    size: 20,
                                   ),
                                 ),
                               ),

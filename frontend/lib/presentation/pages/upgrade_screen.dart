@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../core/services/auth_service.dart';
 import 'dart:ui';
 import '../widgets/dialogs/payment_dialog.dart';
-import 'dart:math' show cos, sin;
 
 class UpgradeScreen extends StatefulWidget {
   final bool isDialog;

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/services/auth_service.dart';
 import '../../pages/upgrade_screen.dart';
 
 class RecipeSaveLimitDialog extends StatelessWidget {

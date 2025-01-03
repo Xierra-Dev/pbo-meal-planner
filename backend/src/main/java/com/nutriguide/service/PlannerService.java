@@ -27,9 +27,6 @@ public class PlannerService {
     @Autowired
     private RecipeRepository recipeRepository;
 
-    @Autowired
-    private SavedRecipeService savedRecipeService;
-
     public PlannerDto addToPlan(Long userId, String recipeId, LocalDate plannedDate, RecipeDto recipeDto) {
         try {
             User user = userRepository.findById(userId)

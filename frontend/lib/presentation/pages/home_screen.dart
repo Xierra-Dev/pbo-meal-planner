@@ -13,7 +13,6 @@ import '../widgets/recipe_card.dart';
 import '../widgets/popup_recipe_grid.dart';
 import '../widgets/dialogs/recipe_details_dialog.dart';
 import '../widgets/dialogs/settings_dialog.dart';
-import '../widgets/chat_bot.dart';
 import '../widgets/chat_bubble_button.dart';
 import '../widgets/sidebars/left_sidebar.dart';
 import '../widgets/sidebars/right_sidebar.dart';
@@ -383,7 +382,6 @@ class _HomeContentState extends State<HomeContent> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
 
     return SingleChildScrollView(
       child: Row(

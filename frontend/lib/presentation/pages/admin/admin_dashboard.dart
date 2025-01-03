@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '/core/services/admin_service.dart';
-import '/presentation/pages/admin/user_panel.dart';
 import '/presentation/widgets/dialogs/edit_user_dialog.dart';
 import '/presentation/widgets/dialogs/delete_user_dialog.dart';
 import 'package:flutter/services.dart';

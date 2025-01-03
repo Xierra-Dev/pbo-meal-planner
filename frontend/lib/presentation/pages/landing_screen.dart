@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'auth/login_screen.dart';
 import 'auth/register_screen.dart';
-import 'package:nutriguide/utils/page_transitions.dart';
 import 'package:nutriguide/utils/navigation_helper.dart';
 
 class LandingScreen extends StatefulWidget {

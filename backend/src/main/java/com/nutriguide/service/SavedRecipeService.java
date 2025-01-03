@@ -1,8 +1,5 @@
 package com.nutriguide.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nutriguide.dto.RecipeDto;
 import com.nutriguide.exception.ResourceNotFoundException;
 import com.nutriguide.model.Recipe;
@@ -36,8 +33,6 @@ public class SavedRecipeService {
     @Autowired
     private RecipeRepository recipeRepository;
 
-    @Autowired
-    private ObjectMapper objectMapper;
 
     public List<RecipeDto> getSavedRecipes(Long userId) {
         try {

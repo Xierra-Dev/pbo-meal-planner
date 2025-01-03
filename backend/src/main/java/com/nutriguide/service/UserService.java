@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 import com.nutriguide.repository.UserHealthDataRepository;
 import com.nutriguide.repository.UserGoalRepository;
 import com.nutriguide.repository.UserAllergyRepository;
-import com.nutriguide.service.AuthService;
 
 
 @Service
@@ -50,6 +49,26 @@ public class UserService {
 
     @Autowired
     private AuthService authService;
+
+    @Transactional
+    public User registerUser(User user) {
+        logger.info("Registering new user: {}", user.getUsername());
+        
+        // Validate unique constraints
+        validateUniqueConstraints(user);
+        
+        // Create new Regular User
+        RegularUser newUser = new RegularUser();
+        copyBaseUserProperties(user, newUser);
+        
+        // Set default values for regular user
+        newUser.setMaxSavedRecipes(10);
+        newUser.setMaxMealPlans(7);
+        newUser.setRole("USER");
+        newUser.setUserType(UserType.REGULAR);
+        
+        return userRepository.save(newUser);
+    }
 
     // Create
     @Transactional

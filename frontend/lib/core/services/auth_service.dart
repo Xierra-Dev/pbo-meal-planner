@@ -3,12 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import '../constants/api_constants.dart';
-import '../models/user.dart';
-import 'package:dio/dio.dart';
 
 class AuthService with ChangeNotifier {
   final _storage = const FlutterSecureStorage();
-  final _dio = Dio();
   String? _userId;
   String? _token;
   String? _username;

@@ -23,7 +23,6 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
 
-  final AuthService _authService = AuthService();
 
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;

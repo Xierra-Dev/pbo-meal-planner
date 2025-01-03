@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/services/auth_service.dart';
-import '../../../core/models/user.dart';
 import 'account_settings_dialog.dart';
 import 'edit_profile_dialog.dart';
 import 'preferences_dialog.dart';
