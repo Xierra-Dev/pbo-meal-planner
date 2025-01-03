@@ -338,7 +338,7 @@ class _LandingScreenState extends State<LandingScreen> {
                 ),
               ),
 
-              // Features Section dengan cards yang lebih menarik
+              // Features Section dengan cards yang responsif
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 24),
                 child: Column(
@@ -352,31 +352,103 @@ class _LandingScreenState extends State<LandingScreen> {
                       ),
                     ),
                     const SizedBox(height: 64),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _buildFeatureCard(
-                          icon: Icons.restaurant_menu,
-                          title: 'Recipe Discovery',
-                          description:
-                              'Explore thousands of healthy recipes tailored to your preferences',
-                          color: Colors.blue[700]!,
-                        ),
-                        _buildFeatureCard(
-                          icon: Icons.calendar_today,
-                          title: 'Meal Planning',
-                          description:
-                              'Plan your meals for the week ahead with smart suggestions',
-                          color: Colors.green[700]!,
-                        ),
-                        _buildFeatureCard(
-                          icon: Icons.track_changes,
-                          title: 'Nutrition Tracking',
-                          description:
-                              'Monitor your daily nutrition intake with detailed insights',
-                          color: Colors.orange[700]!,
-                        ),
-                      ],
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        if (constraints.maxWidth < 600) {
+                          // Mobile layout - Stack vertically
+                          return Column(
+                            children: [
+                              _buildFeatureCard(
+                                icon: Icons.restaurant_menu,
+                                title: 'Recipe Discovery',
+                                description: 'Explore thousands of healthy recipes tailored to your preferences',
+                                color: Colors.blue[700]!,
+                              ),
+                              _buildFeatureCard(
+                                icon: Icons.calendar_today,
+                                title: 'Meal Planning',
+                                description: 'Plan your meals for the week ahead with smart suggestions',
+                                color: Colors.green[700]!,
+                              ),
+                              _buildFeatureCard(
+                                icon: Icons.track_changes,
+                                title: 'Nutrition Tracking',
+                                description: 'Monitor your daily nutrition intake with detailed insights',
+                                color: Colors.orange[700]!,
+                              ),
+                            ],
+                          );
+                        } else if (constraints.maxWidth < 900) {
+                          // Tablet layout - 2 columns
+                          return Wrap(
+                            spacing: 16,
+                            runSpacing: 16,
+                            alignment: WrapAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: (constraints.maxWidth - 48) / 2,
+                                child: _buildFeatureCard(
+                                  icon: Icons.restaurant_menu,
+                                  title: 'Recipe Discovery',
+                                  description: 'Explore thousands of healthy recipes tailored to your preferences',
+                                  color: Colors.blue[700]!,
+                                ),
+                              ),
+                              SizedBox(
+                                width: (constraints.maxWidth - 48) / 2,
+                                child: _buildFeatureCard(
+                                  icon: Icons.calendar_today,
+                                  title: 'Meal Planning',
+                                  description: 'Plan your meals for the week ahead with smart suggestions',
+                                  color: Colors.green[700]!,
+                                ),
+                              ),
+                              SizedBox(
+                                width: (constraints.maxWidth - 48) / 2,
+                                child: _buildFeatureCard(
+                                  icon: Icons.track_changes,
+                                  title: 'Nutrition Tracking',
+                                  description: 'Monitor your daily nutrition intake with detailed insights',
+                                  color: Colors.orange[700]!,
+                                ),
+                              ),
+                            ],
+                          );
+                        } else {
+                          // Desktop layout - 3 columns
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Flexible(
+                                child: _buildFeatureCard(
+                                  icon: Icons.restaurant_menu,
+                                  title: 'Recipe Discovery',
+                                  description: 'Explore thousands of healthy recipes tailored to your preferences',
+                                  color: Colors.blue[700]!,
+                                ),
+                              ),
+                              const SizedBox(width: 24),
+                              Flexible(
+                                child: _buildFeatureCard(
+                                  icon: Icons.calendar_today,
+                                  title: 'Meal Planning',
+                                  description: 'Plan your meals for the week ahead with smart suggestions',
+                                  color: Colors.green[700]!,
+                                ),
+                              ),
+                              const SizedBox(width: 24),
+                              Flexible(
+                                child: _buildFeatureCard(
+                                  icon: Icons.track_changes,
+                                  title: 'Nutrition Tracking',
+                                  description: 'Monitor your daily nutrition intake with detailed insights',
+                                  color: Colors.orange[700]!,
+                                ),
+                              ),
+                            ],
+                          );
+                        }
+                      },
                     ),
                   ],
                 ),
@@ -435,6 +507,7 @@ class _LandingScreenState extends State<LandingScreen> {
     );
   }
 
+  // Feature Card Widget
   Widget _buildFeatureCard({
     required IconData icon,
     required String title,
@@ -448,7 +521,6 @@ class _LandingScreenState extends State<LandingScreen> {
         borderRadius: BorderRadius.circular(16),
       ),
       child: Container(
-        width: 320,
         padding: const EdgeInsets.all(32),
         child: Column(
           children: [
