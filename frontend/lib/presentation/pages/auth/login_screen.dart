@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import 'dart:ui';
 import 'package:nutriguide/utils/navigation_helper.dart';
 import 'package:nutriguide/presentation/pages/landing_screen.dart';
+import 'package:nutriguide/presentation/widgets/dialogs/error_dialog.dart';
+import 'package:nutriguide/presentation/pages/admin/admin_dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -42,21 +44,41 @@ class _LoginScreenState extends State<LoginScreen> {
       final isLoggedIn = await authService.isLoggedIn();
       
       if (mounted && isLoggedIn) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        );
+        // Cek user type untuk menentukan redirect
+        final userType = await authService.getUserType();
+        
+        if (userType == 'ADMIN') {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const AdminDashboard()),
+          );
+        } else {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.all(16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => ErrorDialog(
+            title: 'Login Failed',
+            message: e.toString().contains('credentials')
+                ? 'Email atau password salah.\nSilakan coba lagi.'
+                : e.toString().contains('network')
+                    ? 'Koneksi internet bermasalah.\nPeriksa koneksi Anda.'
+                    : 'Double Check your email and password.\nTry again.',
+            icon: e.toString().contains('credentials')
+                ? Icons.lock_person_rounded
+                : e.toString().contains('network')
+                    ? Icons.wifi_off_rounded
+                    : Icons.error_outline_rounded,
+            iconColor: e.toString().contains('credentials')
+                ? Colors.orange[400]
+                : e.toString().contains('network')
+                    ? Colors.blue[400]
+                    : Colors.red[400],
           ),
         );
       }
