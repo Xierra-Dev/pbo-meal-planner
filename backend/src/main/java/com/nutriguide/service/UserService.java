@@ -83,8 +83,6 @@ public class UserService {
             PremiumUser premiumUser = new PremiumUser();
             copyBaseUserProperties(user, premiumUser);
             premiumUser.setSubscriptionEndDate(LocalDateTime.now().plusMonths(1));
-            premiumUser.setHasAiRecommendations(true);
-            premiumUser.setHasAdvancedAnalytics(true);
             premiumUser.setUnlimitedSavedRecipes(true);
             premiumUser.setUnlimitedMealPlans(true);
             newUser = premiumUser;
@@ -185,8 +183,6 @@ public class UserService {
             // Copy basic properties
             BeanUtils.copyProperties(user, premiumUser);
             // Set premium features
-            premiumUser.setHasAiRecommendations(true);
-            premiumUser.setHasAdvancedAnalytics(true);
             premiumUser.setUnlimitedSavedRecipes(true);
             premiumUser.setUnlimitedMealPlans(true);
             premiumUser.setSubscriptionEndDate(LocalDateTime.now().plusMonths(1));
@@ -403,16 +399,12 @@ public class UserService {
             User user = findById(userId);
             if ("PREMIUM".equals(newUserType)) {
                 user.setSubscriptionEndDate(LocalDateTime.now().plusMonths(1));
-                user.setHasAiRecommendations(true);
-                user.setHasAdvancedAnalytics(true);
                 user.setUnlimitedSavedRecipes(true);
                 user.setUnlimitedMealPlans(true);
                 user.setMaxSavedRecipes(null);
                 user.setMaxMealPlans(null);
             } else {
                 user.setSubscriptionEndDate(null);
-                user.setHasAiRecommendations(false);
-                user.setHasAdvancedAnalytics(false);
                 user.setUnlimitedSavedRecipes(false);
                 user.setUnlimitedMealPlans(false);
                 user.setMaxSavedRecipes(10);
@@ -442,8 +434,6 @@ public class UserService {
             .userType(user.getUserType().toString())
             .role(user.getRole())
             .subscriptionEndDate(user.getSubscriptionEndDate())
-            .hasAiRecommendations(user.getHasAiRecommendations())
-            .hasAdvancedAnalytics(user.getHasAdvancedAnalytics())
             .unlimitedSavedRecipes(user.getUnlimitedSavedRecipes())
             .unlimitedMealPlans(user.getUnlimitedMealPlans())
             .maxSavedRecipes(user.getMaxSavedRecipes())

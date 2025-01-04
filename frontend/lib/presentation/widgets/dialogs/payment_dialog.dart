@@ -56,7 +56,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
 
   Widget _buildCardTypeIcon() {
     if (_cardType.isEmpty) {
-      return Icon(Icons.credit_card, color: Colors.grey[400]);
+      return Icon(Icons.credit_card, color: Colors.grey);
     }
 
     return Container(
@@ -217,7 +217,8 @@ class _PaymentDialogState extends State<PaymentDialog> {
                 prefixIcon: const Icon(Icons.credit_card),
                 suffixIcon: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 200),
-                  transitionBuilder: (Widget child, Animation<double> animation) {
+                  transitionBuilder:
+                      (Widget child, Animation<double> animation) {
                     return FadeTransition(
                       opacity: animation,
                       child: ScaleTransition(
@@ -245,7 +246,10 @@ class _PaymentDialogState extends State<PaymentDialog> {
               controller: _nameController,
               decoration: InputDecoration(
                 labelText: 'Card Holder Name',
-                hintText: 'JOHN DOE',
+                hintText: 'John Doe',
+                hintStyle: TextStyle(
+                  color: Colors.black.withOpacity(0.5),
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -366,7 +370,8 @@ class _PaymentDialogState extends State<PaymentDialog> {
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
                       : const Row(
@@ -417,7 +422,8 @@ class _PaymentDialogState extends State<PaymentDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.verified_user_outlined, size: 16, color: Colors.grey[600]),
+                Icon(Icons.verified_user_outlined,
+                    size: 16, color: Colors.grey[600]),
                 const SizedBox(width: 8),
                 Text(
                   'Secure Payment',
@@ -477,7 +483,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
     try {
       // Simulate payment processing
       await Future.delayed(const Duration(seconds: 2));
-      
+
       if (mounted) {
         widget.onPaymentSuccess();
         Navigator.pop(context); // Close payment dialog

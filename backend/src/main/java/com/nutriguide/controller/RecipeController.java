@@ -34,4 +34,5 @@ public class RecipeController {
     public ResponseEntity<List<RecipeDto>> getRecipesByCategory(@PathVariable String category) {
         return ResponseEntity.ok(recipeService.getRecipesByCategory(category));
     }
+
 }

@@ -24,11 +24,12 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
       builder: (context) => PaymentDialog(
         onPaymentSuccess: () async {
           setState(() => _isLoading = true);
-          
+
           try {
-            final authService = Provider.of<AuthService>(mainContext, listen: false);
+            final authService =
+                Provider.of<AuthService>(mainContext, listen: false);
             await authService.updateUserType('PREMIUM');
-            
+
             if (!mounted) return;
 
             // Close payment dialog first
@@ -122,16 +123,17 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                           onPressed: () {
                             // Close success dialog
                             Navigator.of(context).pop();
-                            
+
                             // Close upgrade screen if it's a dialog
                             if (widget.isDialog) {
                               Navigator.of(mainContext).pop();
                             }
 
                             // Show snackbar after slight delay
-                            Future.delayed(const Duration(milliseconds: 300), () {
+                            Future.delayed(const Duration(milliseconds: 300),
+                                () {
                               if (!mounted) return;
-                              
+
                               ScaffoldMessenger.of(mainContext).showSnackBar(
                                 SnackBar(
                                   content: Row(
@@ -199,7 +201,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
             );
           } catch (e) {
             if (!mounted) return;
-            
+
             ScaffoldMessenger.of(mainContext).showSnackBar(
               SnackBar(
                 content: Row(
@@ -241,7 +243,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
     return features.asMap().entries.map((entry) {
       final index = entry.key;
       final feature = entry.value;
-      
+
       return TweenAnimationBuilder(
         duration: Duration(milliseconds: 400 + (index * 100)),
         tween: Tween<double>(begin: 0, end: 1),
@@ -399,9 +401,14 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('\$', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                        Text('9.99', style: TextStyle(fontSize: 48, fontWeight: FontWeight.bold)),
-                        Text('/month', style: TextStyle(fontSize: 16, color: Colors.grey)),
+                        Text('\$',
+                            style: TextStyle(
+                                fontSize: 24, fontWeight: FontWeight.bold)),
+                        Text('9.99',
+                            style: TextStyle(
+                                fontSize: 48, fontWeight: FontWeight.bold)),
+                        Text('/month',
+                            style: TextStyle(fontSize: 16, color: Colors.grey)),
                       ],
                     ),
                     const SizedBox(height: 24),
@@ -450,7 +457,8 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                                 width: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
                                 ),
                               )
                             : const Text(
@@ -468,7 +476,8 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.verified_user, color: Colors.green[300], size: 16),
+                        Icon(Icons.verified_user,
+                            color: Colors.green[300], size: 16),
                         const SizedBox(width: 8),
                         Text(
                           '30-day money-back guarantee',

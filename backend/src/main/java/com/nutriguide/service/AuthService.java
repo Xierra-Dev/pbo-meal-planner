@@ -98,8 +98,6 @@ public class AuthService {
             .createdAt(LocalDateTime.now())
             .updatedAt(LocalDateTime.now())
             .subscriptionEndDate(LocalDateTime.now().plusMonths(1))
-            .hasAiRecommendations(true)
-            .hasAdvancedAnalytics(true)
             .unlimitedSavedRecipes(true)
             .unlimitedMealPlans(true)
             .build();
@@ -160,8 +158,6 @@ public class AuthService {
         if (user instanceof PremiumUser premiumUser) {
             response.put("userType", "PREMIUM");
             response.put("subscriptionEndDate", premiumUser.getSubscriptionEndDate());
-            response.put("hasAiRecommendations", premiumUser.getHasAiRecommendations());
-            response.put("hasAdvancedAnalytics", premiumUser.getHasAdvancedAnalytics());
             response.put("unlimitedSavedRecipes", premiumUser.getUnlimitedSavedRecipes());
             response.put("unlimitedMealPlans", premiumUser.getUnlimitedMealPlans());
         } else if (user instanceof RegularUser regularUser) {
@@ -204,8 +200,7 @@ public class AuthService {
             builder
                 .userType("PREMIUM")
                 .subscriptionEndDate(premiumUser.getSubscriptionEndDate())
-                .hasAiRecommendations(premiumUser.getHasAiRecommendations())
-                .hasAdvancedAnalytics(premiumUser.getHasAdvancedAnalytics())
+                
                 .unlimitedSavedRecipes(premiumUser.getUnlimitedSavedRecipes())
                 .unlimitedMealPlans(premiumUser.getUnlimitedMealPlans());
         } else if (user instanceof RegularUser regularUser) {

@@ -59,11 +59,7 @@ public class User {
     @Column(name = "subscription_end_date")
     private LocalDateTime subscriptionEndDate;
 
-    @Column(name = "has_ai_recommendations")
-    private Boolean hasAiRecommendations = false;
 
-    @Column(name = "has_advanced_analytics")
-    private Boolean hasAdvancedAnalytics = false;
 
     @Column(name = "unlimited_saved_recipes")
     private Boolean unlimitedSavedRecipes = false;
@@ -114,13 +110,7 @@ public class User {
     }
 
     // Getters and setters for premium features
-    public Boolean getHasAiRecommendations() {
-        return hasAiRecommendations != null ? hasAiRecommendations : false;
-    }
-
-    public Boolean getHasAdvancedAnalytics() {
-        return hasAdvancedAnalytics != null ? hasAdvancedAnalytics : false;
-    }
+   
 
     public Boolean getUnlimitedSavedRecipes() {
         return unlimitedSavedRecipes != null ? unlimitedSavedRecipes : false;
@@ -150,8 +140,7 @@ public class User {
         if (!hasActiveSubscription()) return false;
         
         return switch (featureName) {
-            case "AI_RECOMMENDATIONS" -> getHasAiRecommendations();
-            case "ADVANCED_ANALYTICS" -> getHasAdvancedAnalytics();
+           
             case "UNLIMITED_SAVED_RECIPES" -> getUnlimitedSavedRecipes();
             case "UNLIMITED_MEAL_PLANS" -> getUnlimitedMealPlans();
             default -> false;

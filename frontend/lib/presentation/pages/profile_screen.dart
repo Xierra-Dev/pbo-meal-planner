@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/profile_service.dart';
 import 'package:intl/intl.dart';
-import '../widgets/chat_bubble_button.dart';  
+import '../widgets/chat_bubble_button.dart';
 import '../pages/upgrade_screen.dart';
 import 'dart:ui';
 
@@ -69,18 +69,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // Tambahkan method untuk menampilkan dialog
-    void _showEditProfileDialog(BuildContext context) async {
+  void _showEditProfileDialog(BuildContext context) async {
     final userId = await _authService.getCurrentUserId();
     if (userId == null) return;
 
     try {
       final profile = await _authService.getUserProfile(userId);
-      
+
       // Initialize controllers with current values
-      final TextEditingController firstNameController = TextEditingController(text: profile['firstName'] ?? '');
-      final TextEditingController lastNameController = TextEditingController(text: profile['lastName'] ?? '');
-      final TextEditingController usernameController = TextEditingController(text: profile['username'] ?? '');
-      final TextEditingController bioController = TextEditingController(text: profile['bio'] ?? '');
+      final TextEditingController firstNameController =
+          TextEditingController(text: profile['firstName'] ?? '');
+      final TextEditingController lastNameController =
+          TextEditingController(text: profile['lastName'] ?? '');
+      final TextEditingController usernameController =
+          TextEditingController(text: profile['username'] ?? '');
+      final TextEditingController bioController =
+          TextEditingController(text: profile['bio'] ?? '');
 
       showDialog(
         context: context,
@@ -227,20 +231,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               'username': usernameController.text,
                               'bio': bioController.text,
                             };
-                            
+
                             await _authService.updateProfile(updatedProfile);
                             await _loadProfileData();
-                            
+
                             if (mounted) {
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Profile updated successfully')),
+                                const SnackBar(
+                                    content:
+                                        Text('Profile updated successfully')),
                               );
                             }
                           } catch (e) {
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Failed to update profile')),
+                                const SnackBar(
+                                    content: Text('Failed to update profile')),
                               );
                             }
                           }
@@ -268,10 +275,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-    @override
+  @override
   Widget build(BuildContext context) {
     final bool isPremium = _profileData['userType'] == 'PREMIUM';
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
@@ -315,7 +322,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                                 child: const CircleAvatar(
                                   radius: 50,
-                                  backgroundImage: AssetImage('assets/images/profile.jpg'),
+                                  backgroundImage:
+                                      AssetImage('assets/images/profile.jpg'),
                                 ),
                               ),
                               if (isPremium)
@@ -333,7 +341,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       ),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.amber[200]!.withOpacity(0.5),
+                                          color: Colors.amber[200]!
+                                              .withOpacity(0.5),
                                           blurRadius: 8,
                                           offset: const Offset(0, 2),
                                         ),
@@ -351,7 +360,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(height: 16),
                           if (isPremium) ...[
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 4),
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: [
@@ -391,7 +401,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             const SizedBox(height: 8),
                           ],
-                          
+
                           // Username
                           Text(
                             _profileData['username'] ?? 'User',
@@ -400,19 +410,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          
+
                           // Full Name
-                          if (_profileData['firstName'] != null || _profileData['lastName'] != null)
+                          if (_profileData['firstName'] != null ||
+                              _profileData['lastName'] != null)
                             Text(
-                              '${_profileData['firstName'] ?? ''} ${_profileData['lastName'] ?? ''}'.trim(),
+                              '${_profileData['firstName'] ?? ''} ${_profileData['lastName'] ?? ''}'
+                                  .trim(),
                               style: const TextStyle(
                                 fontSize: 16,
                                 color: Colors.grey,
                               ),
                             ),
-                            
+
                           // Bio
-                          if (_profileData['bio'] != null && _profileData['bio'].toString().isNotEmpty)
+                          if (_profileData['bio'] != null &&
+                              _profileData['bio'].toString().isNotEmpty)
                             Padding(
                               padding: const EdgeInsets.only(top: 8.0),
                               child: Text(
@@ -425,7 +438,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ElevatedButton(
                             onPressed: () => _showEditProfileDialog(context),
                             style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 24, vertical: 12),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -437,7 +451,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             TextButton(
                               onPressed: () => _showDowngradeDialog(),
                               style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 24, vertical: 12),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
@@ -445,7 +460,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.arrow_downward, color: Colors.grey[600], size: 16),
+                                  Icon(Icons.arrow_downward,
+                                      color: Colors.grey[600], size: 16),
                                   const SizedBox(width: 8),
                                   Text(
                                     'Downgrade to Regular',
@@ -642,7 +658,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
                                       "Today's Nutrition",
@@ -658,47 +675,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         color: Colors.grey[600],
                                       ),
                                       onPressed: () {
-                                        context.read<ProfileService>().resetTodayNutrition();
+                                        context
+                                            .read<ProfileService>()
+                                            .resetTodayNutrition();
                                       },
                                     ),
                                   ],
                                 ),
                                 Text(
-                                  DateFormat('EEEE, MMMM d').format(DateTime.now()),
+                                  DateFormat('EEEE, MMMM d')
+                                      .format(DateTime.now()),
                                   style: TextStyle(
                                     color: Colors.grey[600],
                                     fontSize: 14,
                                   ),
                                 ),
                                 const SizedBox(height: 20),
-                                
+
                                 // Nutrition Goals Summary
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     _NutritionItem(
                                       label: 'Cal',
-                                      value: '${profileService.todayNutrition.calories.toInt()}',
+                                      value:
+                                          '${profileService.todayNutrition.calories.toInt()}',
                                       color: Colors.blue[400]!,
                                     ),
                                     _NutritionItem(
                                       label: 'Carbs',
-                                      value: '${profileService.todayNutrition.carbs.toInt()}g',
+                                      value:
+                                          '${profileService.todayNutrition.carbs.toInt()}g',
                                       color: Colors.orange[400]!,
                                     ),
                                     _NutritionItem(
                                       label: 'Fiber',
-                                      value: '${profileService.todayNutrition.fiber.toInt()}g',
+                                      value:
+                                          '${profileService.todayNutrition.fiber.toInt()}g',
                                       color: Colors.green[400]!,
                                     ),
                                     _NutritionItem(
                                       label: 'Protein',
-                                      value: '${profileService.todayNutrition.protein.toInt()}g',
+                                      value:
+                                          '${profileService.todayNutrition.protein.toInt()}g',
                                       color: Colors.pink[400]!,
                                     ),
                                     _NutritionItem(
                                       label: 'Fat',
-                                      value: '${profileService.todayNutrition.totalFat.toInt()}g',
+                                      value:
+                                          '${profileService.todayNutrition.totalFat.toInt()}g',
                                       color: Colors.purple[400]!,
                                     ),
                                   ],
@@ -710,7 +736,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   children: [
                                     _NutritionProgressBar(
                                       label: 'Calories',
-                                      current: profileService.todayNutrition.calories,
+                                      current: profileService
+                                          .todayNutrition.calories,
                                       target: 1766,
                                       unit: 'kcal',
                                       color: Colors.blue[400]!,
@@ -718,7 +745,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     const SizedBox(height: 12),
                                     _NutritionProgressBar(
                                       label: 'Carbs',
-                                      current: profileService.todayNutrition.carbs,
+                                      current:
+                                          profileService.todayNutrition.carbs,
                                       target: 274,
                                       unit: 'g',
                                       color: Colors.orange[400]!,
@@ -726,7 +754,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     const SizedBox(height: 12),
                                     _NutritionProgressBar(
                                       label: 'Fiber',
-                                      current: profileService.todayNutrition.fiber,
+                                      current:
+                                          profileService.todayNutrition.fiber,
                                       target: 30,
                                       unit: 'g',
                                       color: Colors.green[400]!,
@@ -734,7 +763,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     const SizedBox(height: 12),
                                     _NutritionProgressBar(
                                       label: 'Protein',
-                                      current: profileService.todayNutrition.protein,
+                                      current:
+                                          profileService.todayNutrition.protein,
                                       target: 79,
                                       unit: 'g',
                                       color: Colors.pink[400]!,
@@ -742,7 +772,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     const SizedBox(height: 12),
                                     _NutritionProgressBar(
                                       label: 'Fat',
-                                      current: profileService.todayNutrition.totalFat,
+                                      current: profileService
+                                          .todayNutrition.totalFat,
                                       target: 39,
                                       unit: 'g',
                                       color: Colors.purple[400]!,
@@ -759,7 +790,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
-          
+
           // Chat Bubble Button
           ChatBubbleButton(isPremium: isPremium),
         ],
@@ -809,7 +840,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 },
               ),
               const SizedBox(height: 24),
-              
+
               // Title with Animation
               TweenAnimationBuilder(
                 duration: const Duration(milliseconds: 800),
@@ -833,7 +864,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              
+
               // Message with Animation
               TweenAnimationBuilder(
                 duration: const Duration(milliseconds: 1000),
@@ -857,15 +888,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              
+
               // Features List with Staggered Animation
-              ...['AI Chat Assistant', 'Nutrition Analytics', 'Unlimited Recipe Saves']
-                  .asMap()
-                  .entries
-                  .map((entry) {
+              ...[
+                'AI Chat Assistant',
+                'Nutrition Analytics',
+                'Unlimited Recipe Saves'
+              ].asMap().entries.map((entry) {
                 final index = entry.key;
                 final feature = entry.value;
-                
+
                 return TweenAnimationBuilder(
                   duration: Duration(milliseconds: 800 + (index * 100)),
                   tween: Tween<double>(begin: 0, end: 1),
@@ -910,7 +942,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 );
               }).toList(),
               const SizedBox(height: 24),
-              
+
               // Action Buttons with Animation
               TweenAnimationBuilder(
                 duration: const Duration(milliseconds: 1200),
@@ -1004,13 +1036,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _handleDowngrade() async {
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
-      
+
       // Update user type ke REGULAR
       await authService.updateUserType('REGULAR');
-      
+
       if (mounted) {
         Navigator.pop(context); // Close downgrade dialog
-        
+
         // Show success snackbar
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1046,7 +1078,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             duration: const Duration(seconds: 4),
           ),
         );
-        
+
         // Refresh profile data
         await _loadProfileData();
       }

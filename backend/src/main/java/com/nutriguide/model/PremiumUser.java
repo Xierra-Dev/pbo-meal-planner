@@ -23,11 +23,7 @@ public class PremiumUser extends User {
     @Column(name = "subscription_end_date")
     private LocalDateTime subscriptionEndDate;
 
-    @Column(name = "has_ai_recommendations")
-    private Boolean hasAiRecommendations = true;
-
-    @Column(name = "has_advanced_analytics")
-    private Boolean hasAdvancedAnalytics = true;
+    
 
     @Column(name = "unlimited_saved_recipes")
     private Boolean unlimitedSavedRecipes = true;
