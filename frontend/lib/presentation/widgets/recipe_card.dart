@@ -150,11 +150,6 @@ class RecipeCard extends StatelessWidget {
                             horizontal: 8,
                             vertical: 4,
                           ),
-                          decoration: BoxDecoration(
-                            color: _getHealthScoreColor(recipe.healthScore)
-                                .withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -164,14 +159,6 @@ class RecipeCard extends StatelessWidget {
                                 size: 16,
                               ),
                               const SizedBox(width: 4),
-                              Text(
-                                recipe.healthScore.toStringAsFixed(1),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
                             ],
                           ),
                         ),

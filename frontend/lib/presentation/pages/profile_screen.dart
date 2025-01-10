@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/profile_service.dart';
 import 'package:intl/intl.dart';
-import '../widgets/chat_bubble_button.dart';
 import '../pages/upgrade_screen.dart';
 import 'dart:ui';
 
@@ -790,9 +789,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
-
-          // Chat Bubble Button
-          ChatBubbleButton(isPremium: isPremium),
         ],
       ),
     );
