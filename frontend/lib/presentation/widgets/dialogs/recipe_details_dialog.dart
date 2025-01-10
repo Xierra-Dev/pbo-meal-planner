@@ -227,10 +227,22 @@ class _RecipeDetailsDialogState extends State<RecipeDetailsDialog> {
                         Expanded(
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(4),
-                            
+                            child: LinearProgressIndicator(
+                              value: widget.recipe.healthScore / 10,
+                              backgroundColor: Colors.grey[200],
+                              color: _getHealthScoreColor(widget.recipe.healthScore),
+                              minHeight: 8,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 12),
+                        Text(
+                          '${widget.recipe.healthScore.toStringAsFixed(1)} / 10',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 24),

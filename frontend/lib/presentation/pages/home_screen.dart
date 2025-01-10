@@ -13,6 +13,7 @@ import '../widgets/recipe_card.dart';
 import '../widgets/popup_recipe_grid.dart';
 import '../widgets/dialogs/recipe_details_dialog.dart';
 import '../widgets/dialogs/settings_dialog.dart';
+import '../widgets/chat_bubble_button.dart';
 import '../widgets/sidebars/left_sidebar.dart';
 import '../widgets/sidebars/right_sidebar.dart';
 
@@ -353,6 +354,14 @@ class _HomeScreenState extends State<HomeScreen> {
               right: screenWidth > 1200 ? 300 : 0,
             ),
             child: _screens[_selectedIndex],
+          ),
+
+          // Chat Bubble
+          Consumer<AuthService>(
+            builder: (context, authService, _) {
+              final bool isPremium = authService.isPremiumUser();
+              return ChatBubbleButton(isPremium: isPremium);
+            },
           ),
         ],
       ),
